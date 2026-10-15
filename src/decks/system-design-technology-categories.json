@@ -1,0 +1,106 @@
+{
+  "name": "System Design — Technology Categories and Examples",
+  "description": "Map infrastructure categories to representative technologies and their use cases.",
+  "cards": [
+    {
+      "front": "Which technologies are relational databases?",
+      "back": "PostgreSQL, MySQL, and SQLite.",
+      "details": "Relational databases organize structured records in tables, support SQL joins and indexes, and typically offer transactions and constraints. PostgreSQL and MySQL commonly serve application backends; SQLite suits embedded or smaller local workloads."
+    },
+    {
+      "front": "Which technologies are distributed wide-column databases?",
+      "back": "Apache Cassandra, ScyllaDB, and Google Bigtable.",
+      "details": "These systems partition large tables across nodes and favor predictable key or range access at substantial scale. Cassandra and ScyllaDB suit high write volume and query-led schemas; Bigtable provides a managed wide-column model. They are poor matches for arbitrary relational joins."
+    },
+    {
+      "front": "Which technologies are document databases?",
+      "back": "MongoDB, Couchbase, and Amazon DocumentDB.",
+      "details": "Document databases store records as flexible structured documents, often JSON-like. They fit aggregate-centric data and evolving schemas where access is usually by document or indexed fields. Cross-document transactions and joins vary by product and deployment."
+    },
+    {
+      "front": "Which technologies are key-value stores?",
+      "back": "Redis, Amazon DynamoDB, and etcd.",
+      "details": "Key-value systems retrieve or update data by key, but serve different roles: Redis is often an in-memory cache or ephemeral store, DynamoDB is a managed persistent database, and etcd is a strongly consistent coordination store. Select by durability, consistency, latency, and query needs."
+    },
+    {
+      "front": "Which technologies are event-streaming platforms?",
+      "back": "Apache Kafka, Apache Pulsar, and Redpanda.",
+      "details": "These platforms persist partitioned event streams so independent consumers can process and often replay data. Use them for decoupled pipelines and projections, with attention to partition ordering, retention, lag, and idempotency. Broker guarantees differ by configuration."
+    },
+    {
+      "front": "Which technologies are work queues or message brokers?",
+      "back": "RabbitMQ, Amazon SQS, and Google Cloud Tasks.",
+      "details": "A work queue distributes tasks to workers and usually supports retries and acknowledgement. RabbitMQ offers flexible routing, SQS managed queueing, and Cloud Tasks HTTP task delivery. Choose based on delivery, ordering, scheduling, and operational requirements."
+    },
+    {
+      "front": "Which technologies are in-memory caches?",
+      "back": "Redis, Memcached, and Amazon ElastiCache.",
+      "details": "Caches keep frequently accessed or computed values near application servers. Redis and Memcached are engines, while ElastiCache is a managed service for supported engines. Design TTL, invalidation, stampede protection, and fallback before using them."
+    },
+    {
+      "front": "Which technologies are search engines?",
+      "back": "Elasticsearch, OpenSearch, and Apache Solr.",
+      "details": "Search engines use inverted indexes for text matching, ranking, faceting, and filtering. They usually receive asynchronous updates from an authoritative database. Expect indexing lag and define how deletes and permission changes propagate."
+    },
+    {
+      "front": "Which technologies are object-storage services?",
+      "back": "Amazon S3, Google Cloud Storage, and Azure Blob Storage.",
+      "details": "Object stores hold blobs such as images, backups, logs, and archives under keys. They scale well for large durable files but are not relational query engines. Store ownership metadata separately and plan access control, lifecycle, and egress."
+    },
+    {
+      "front": "Which technologies are content delivery networks?",
+      "back": "Cloudflare, Amazon CloudFront, and Fastly.",
+      "details": "CDNs cache assets or cacheable responses at edge locations to reduce origin load and user latency. They are useful for images, scripts, and public downloads. Configure cache keys and invalidation carefully, especially for private content."
+    },
+    {
+      "front": "Which technologies are reverse proxies and load balancers?",
+      "back": "Envoy, HAProxy, and NGINX.",
+      "details": "These proxies route incoming traffic, check health, terminate TLS, and may enforce limits or retries. They help scale stateless services and isolate failing instances. Retry policies should avoid multiplying non-idempotent writes."
+    },
+    {
+      "front": "Which technologies are service discovery or coordination stores?",
+      "back": "etcd, Consul, and Apache ZooKeeper.",
+      "details": "These services maintain configuration, membership, or coordination state for distributed systems. Some support watches and leases for leader election. They should hold small critical metadata, not bulk application records."
+    },
+    {
+      "front": "Which technologies are analytics warehouses?",
+      "back": "Snowflake, BigQuery, and Amazon Redshift.",
+      "details": "Warehouses optimize large scans and aggregations over analytical datasets, often fed from OLTP databases or streams. Use them for reporting and historical analysis rather than per-message transactional writes or low-latency user lookups."
+    },
+    {
+      "front": "Which technologies are time-series databases?",
+      "back": "TimescaleDB, InfluxDB, and Prometheus.",
+      "details": "Time-series systems optimize timestamped measurements, aggregation, and retention. Prometheus is commonly used for operational metrics; TimescaleDB extends PostgreSQL; InfluxDB targets time-series workloads. Cardinality and retention planning are important."
+    },
+    {
+      "front": "Which technologies are graph databases?",
+      "back": "Neo4j, Amazon Neptune, and JanusGraph.",
+      "details": "Graph databases represent nodes and relationships and support traversals such as multi-hop connections or fraud rings. They can fit relationship-heavy questions; a relational database may suffice for simpler edges and known joins."
+    },
+    {
+      "front": "Which technologies are container orchestration platforms?",
+      "back": "Kubernetes, Amazon ECS, and HashiCorp Nomad.",
+      "details": "Orchestrators schedule service instances, roll out versions, restart failed workloads, and manage placement. They solve deployment and lifecycle concerns, while application durability and database design remain separate."
+    },
+    {
+      "front": "Which technologies support distributed tracing and observability?",
+      "back": "OpenTelemetry, Jaeger, and Grafana.",
+      "details": "OpenTelemetry defines instrumentation and telemetry pipelines; Jaeger helps inspect traces; Grafana visualizes metrics and other signals. Together with logs and alerts they help follow requests across services and diagnose latency or failure."
+    },
+    {
+      "front": "Which technologies support change data capture?",
+      "back": "Debezium, PostgreSQL logical decoding, and AWS DMS.",
+      "details": "CDC reads database changes and sends them to downstream systems such as search indexes or analytics. Debezium connectors and logical decoding expose change streams; DMS is a managed migration or replication service. Raw row changes need careful interpretation and schema evolution."
+    },
+    {
+      "front": "Which technologies support API gateways?",
+      "back": "Kong, Amazon API Gateway, and Apigee.",
+      "details": "Gateways handle external routing, authentication hooks, limits, and sometimes request transformation. They provide a consistent edge boundary but cannot replace authorization inside services. Watch added latency and failure coupling."
+    },
+    {
+      "front": "Which technologies support feature flags?",
+      "back": "LaunchDarkly, Unleash, and OpenFeature.",
+      "details": "Flag systems let teams roll out or disable behavior without deploying code. LaunchDarkly and Unleash manage evaluations and targeting; OpenFeature is a vendor-neutral API standard. Define defaults and behavior if flag evaluation fails."
+    }
+  ]
+}

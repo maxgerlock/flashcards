@@ -1,0 +1,156 @@
+{
+  "name": "System Design — Specific Technologies",
+  "description": "How individual infrastructure technologies work and where they fit in system design.",
+  "cards": [
+    {
+      "front": "What is Apache Kafka?",
+      "back": "A distributed, partitioned event log.",
+      "details": "Producers append records to topics; consumer groups read partitions by offset and can replay retained data. Use it to decouple services and feed search, analytics, and notification pipelines. Ordering is per partition, and external side effects still need idempotency."
+    },
+    {
+      "front": "What is a Kafka topic?",
+      "back": "A named stream of records.",
+      "details": "A topic groups related events and has a configurable partition count, retention policy, and replication. Consumers subscribe by topic, but scalability and ordering are determined at the partition level. Define event schemas and ownership rather than making one catch-all topic."
+    },
+    {
+      "front": "What is a Kafka partition?",
+      "back": "An ordered shard of a topic.",
+      "details": "A record's key commonly selects a partition. Kafka preserves append order within it and assigns it to one member of each consumer group at a time. More partitions increase potential parallelism, while a hot key can still bottleneck one partition."
+    },
+    {
+      "front": "What is a Kafka offset?",
+      "back": "A record's position within one partition.",
+      "details": "Each partition has its own offset sequence, and a consumer group commits progress independently. An offset supports resuming and replaying within retention; it is not a global ordering or business identifier. Commit after durable processing to avoid lost effects."
+    },
+    {
+      "front": "What is a Kafka consumer group?",
+      "back": "Consumers that share a topic's partition workload.",
+      "details": "Each partition is assigned to at most one active consumer in a given group; another group reads the same topic independently. Rebalances move assignments when members change. Idempotent handlers protect against reprocessing after a failure."
+    },
+    {
+      "front": "What is Kafka retention?",
+      "back": "A policy for how long or how much log data is kept.",
+      "details": "Records are removed according to configured time or size, independently of whether every consumer has read them. Retention makes bounded replay possible but is not archival or a business deletion workflow. A consumer offline beyond retention needs another recovery source."
+    },
+    {
+      "front": "What is Kafka log compaction?",
+      "back": "Keeping the latest record for each key over time.",
+      "details": "Compaction can support reconstructing current keyed state while retaining records during cleanup windows. Tombstones represent deletions and require appropriate retention. It does not replace a database index for arbitrary interactive queries."
+    },
+    {
+      "front": "What is Redis?",
+      "back": "An in-memory data store with rich data structures.",
+      "details": "Redis supports strings, hashes, sets, sorted sets, streams, TTLs, and atomic commands. It is commonly used for caching, ephemeral presence, rate limiting, and coordination. Persistence and replication options exist, but choose durability settings according to the importance of the data."
+    },
+    {
+      "front": "When use Redis for caching?",
+      "back": "When frequent reads benefit from low-latency access.",
+      "details": "Cache derived or retrievable values under well-designed keys and TTLs. Define invalidation and a fallback to the source of truth. Hot keys, stampedes, eviction, and cache outages can become the new bottleneck."
+    },
+    {
+      "front": "How can Redis implement a token bucket?",
+      "back": "Atomically track token count and refill time per key.",
+      "details": "A Lua script or other atomic operation computes elapsed refill, clamps capacity, and consumes request cost. Use TTL to remove idle buckets. Decide how limits behave during Redis outages and how keys account for users, IPs, and tenants."
+    },
+    {
+      "front": "What are Redis Pub/Sub limits?",
+      "back": "Messages are transient and lack durable replay.",
+      "details": "Subscribers receive publications only while connected; disconnected consumers miss them. Use Pub/Sub for ephemeral signals where loss is acceptable. Choose Redis Streams or a durable broker when workers must recover after downtime."
+    },
+    {
+      "front": "What are Redis Streams?",
+      "back": "An append-only record structure with consumer-group features.",
+      "details": "Streams provide IDs, pending entries, acknowledgements, and replay within retained data. They can support smaller event pipelines or work distribution. Compare operational needs and partition scaling with Kafka rather than assuming interchangeable guarantees."
+    },
+    {
+      "front": "What is Apache Cassandra?",
+      "back": "A distributed wide-column database.",
+      "details": "Cassandra partitions data by key and orders rows using clustering columns. It fits high write volume and known query patterns across nodes. Model tables around queries and plan partition size, repair, consistency levels, and data duplication."
+    },
+    {
+      "front": "What does Cassandra's partition key do?",
+      "back": "It chooses where a row group lives.",
+      "details": "Rows sharing a partition key are stored together for efficient partition reads. Poor keys cause unbounded partitions or hot nodes, so include suitable buckets when needed. Partition key choice should match the most important reads."
+    },
+    {
+      "front": "What do Cassandra clustering columns do?",
+      "back": "They order rows inside a partition.",
+      "details": "A message table might partition by channel and time bucket and cluster by message ID for history range reads. Clustering order is local to the partition. Queries spanning partitions require additional application work or separate tables."
+    },
+    {
+      "front": "What are Cassandra consistency levels?",
+      "back": "Per-operation replica acknowledgement requirements.",
+      "details": "Read and write settings such as ONE or QUORUM trade latency and availability against the chance of stale reads. Stronger behavior depends on replica configuration and failure assumptions. Set guarantees per workload rather than labeling the entire database simply strong or eventual."
+    },
+    {
+      "front": "What are Cassandra tombstones?",
+      "back": "Markers for deleted or expired data.",
+      "details": "Replicas need deletion markers to avoid resurrecting older copies during repair. Large numbers of tombstones can slow reads; TTL and delete-heavy workloads need careful modeling. Garbage collection must allow sufficient repair time."
+    },
+    {
+      "front": "What is ScyllaDB?",
+      "back": "A Cassandra-compatible distributed wide-column database.",
+      "details": "ScyllaDB targets high-throughput, low-latency partitioned workloads and exposes Cassandra-style data modeling interfaces. It can serve large message history workloads with appropriate keys. Check compatibility, operational costs, and consistency settings for the specific deployment."
+    },
+    {
+      "front": "What is PostgreSQL?",
+      "back": "A relational database with transactions and SQL.",
+      "details": "PostgreSQL supports schemas, joins, constraints, indexes, MVCC, and transactional updates. It is a strong default for accounts, billing, and application metadata. Understand query plans and bottlenecks before adding caches or sharding."
+    },
+    {
+      "front": "What is an ACID transaction in PostgreSQL?",
+      "back": "A set of changes committed or rolled back as one unit.",
+      "details": "A transaction can insert a message and its outbox event atomically in the same database. Constraints and isolation help enforce invariants. A transaction cannot directly make an external broker write atomic without another coordination mechanism."
+    },
+    {
+      "front": "What is PostgreSQL MVCC?",
+      "back": "Multi-version concurrency control.",
+      "details": "Readers can see a consistent snapshot while other transactions write, reducing read/write blocking. Old row versions require vacuuming. Isolation levels govern which concurrent anomalies are allowed and should match the invariant."
+    },
+    {
+      "front": "What is a PostgreSQL index?",
+      "back": "A structure that speeds selected lookups or sorts.",
+      "details": "B-tree indexes support many equality and range predicates; other index types suit other operators. An index improves reads but costs space and write work. Match the index order to filters, joins, and ORDER BY, and inspect EXPLAIN plans."
+    },
+    {
+      "front": "What is PostgreSQL WAL?",
+      "back": "A write-ahead log for recovery and replication.",
+      "details": "PostgreSQL records changes in WAL before data pages are considered durable. It supports crash recovery and streaming replication. WAL is an implementation log, distinct from an application-domain event log like Kafka."
+    },
+    {
+      "front": "What is PostgreSQL logical replication?",
+      "back": "Replication of database changes at a logical level.",
+      "details": "Publishers send row-level changes to subscribers, commonly using publications and replication slots. It can feed read replicas or CDC pipelines. Monitor slot lag and schema evolution; raw changes do not always capture business event meaning."
+    },
+    {
+      "front": "What is PostgreSQL partitioning?",
+      "back": "Splitting a table into managed child tables.",
+      "details": "Range, list, or hash partitions can help retention and query pruning for suitable filters. Partitioning does not automatically distribute work across machines. Choose it for concrete query or lifecycle needs, not as a substitute for indexing."
+    },
+    {
+      "front": "What is Elasticsearch or OpenSearch?",
+      "back": "A distributed search and indexing engine.",
+      "details": "Inverted indexes enable text search, filtering, and relevance ranking. Feed it asynchronously from authoritative records and tolerate index lag. It is usually a derived search view, not the source of truth for billing or messages."
+    },
+    {
+      "front": "What is object storage such as S3?",
+      "back": "Durable storage for blobs addressed by keys.",
+      "details": "It fits attachments, backups, and cold archives rather than low-latency row queries. Store metadata and authorization in the application and use scoped URLs when appropriate. Consider lifecycle, egress, versioning, and deletion semantics."
+    },
+    {
+      "front": "What is a CDN such as Cloudflare or CloudFront?",
+      "back": "A distributed edge cache for content delivery.",
+      "details": "A CDN serves static assets and cacheable responses near users to reduce latency and origin load. Cache keys, TTLs, purges, and authorization boundaries matter. Personalized or private responses require careful caching rules."
+    },
+    {
+      "front": "What is a load balancer such as Envoy or HAProxy?",
+      "back": "A traffic distributor across healthy service instances.",
+      "details": "It applies routing, health checks, TLS termination, and sometimes retries. Its timeouts and retry policies must respect idempotency and downstream capacity. It does not solve a database hot spot behind every instance."
+    },
+    {
+      "front": "What is Kubernetes?",
+      "back": "An orchestration platform for containers.",
+      "details": "Kubernetes schedules workloads and manages deployment, service discovery, autoscaling, and recovery. It helps operate many services but adds control-plane and networking complexity. Workload design still needs durable state, observability, and safe rollouts."
+    }
+  ]
+}

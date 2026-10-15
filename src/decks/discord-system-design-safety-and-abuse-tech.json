@@ -1,0 +1,56 @@
+{
+  "name": "Discord System Design — Safety & Abuse Tech",
+  "description": "Safety and abuse system design concepts for Discord interview preparation.",
+  "cards": [
+    {
+      "front": "What is defense in depth for abuse prevention?",
+      "back": "Layer controls such as rate limits, rules, ML, and review so bypassing one defense does not bypass safety.",
+      "details": "Use multiple independent controls along the request and investigation path: account creation friction, rate limits, deterministic rules, model scores, reports, and human review. Each catches different tactics and compensates when another is evaded. Measure the combined outcome, including harm prevented and legitimate users affected."
+    },
+    {
+      "front": "What is a safety signal?",
+      "back": "A measurable clue of risk: message velocity, reports, device history, account age, content, or graph behavior.",
+      "details": "A safety signal is an observation that may inform a risk decision, such as account age, message burst rate, prior enforcement, report patterns, or device association. Signals are noisy and may be manipulated. Define collection scope, retention, privacy safeguards, and how much evidence a signal contributes."
+    },
+    {
+      "front": "Why combine rules and ML in abuse detection?",
+      "back": "Rules handle known patterns precisely; ML generalizes to subtler patterns. Together they cover different failure modes.",
+      "details": "Rules are interpretable and effective for known patterns, while models can recognize combinations and changing behavior that rules miss. A layered decision system can use fast rules inline and slower model or graph analysis later. Evaluate both against labeled outcomes and monitor drift and false positives."
+    },
+    {
+      "front": "What is a false positive in abuse detection?",
+      "back": "Legitimate behavior is flagged as abusive, potentially causing needless friction or wrongful enforcement.",
+      "details": "A false positive is a legitimate user or action incorrectly flagged. Costs include blocked conversations, lost trust, reviewer load, and disproportionate harm to unusual but lawful behavior. Track error rates by action severity and user cohort, and provide an appeal or reversal path."
+    },
+    {
+      "front": "What is a false negative in abuse detection?",
+      "back": "Abusive behavior is missed, allowing harm through. Lowering false negatives often raises false positives.",
+      "details": "A false negative lets harmful activity pass undetected. Reducing misses by lowering thresholds often increases false positives, so thresholds should reflect the harm and reversibility of each action. Measure delayed discovery and reports, not only immediate classifier accuracy."
+    },
+    {
+      "front": "When should abuse detection be synchronous?",
+      "back": "Use synchronous checks when harm must be prevented before completion, e.g. blocking a clearly malicious signup.",
+      "details": "Check inline when the harm of allowing the action cannot readily be undone, such as a known malicious link blast or clear automated signup. Keep the check fast and define what happens on timeout or service failure. Use confidence thresholds that reflect the cost of blocking a legitimate user."
+    },
+    {
+      "front": "Why use async abuse pipelines too?",
+      "back": "Async pipelines allow slower rules, ML, graph analysis, and enrichment without delaying every user request.",
+      "details": "Asynchronous processing can run expensive model inference, graph analysis, enrichment, and human review without delaying each request. It can still remove content or limit an account later. Define event durability, processing time objectives, idempotency, and how urgent threats are escalated."
+    },
+    {
+      "front": "Why preserve moderation evidence separately?",
+      "back": "Preserve a reviewable snapshot because reported content may be edited or deleted after the report is filed.",
+      "details": "A reported post may be edited or deleted before a reviewer sees it. Capture the relevant content and metadata at report time with restricted access, retention rules, and provenance. Preserve enough context to review fairly without collecting unnecessary personal data."
+    },
+    {
+      "front": "What should a moderation audit log record?",
+      "back": "Record actor, action, time, reason, policy version, evidence, and prior state for review and accountability.",
+      "details": "A decision log should link the actor or system, target, policy version, reason, evidence reference, timestamp, previous state, and resulting action. Immutable or append-only records help investigation and reversals. Limit sensitive data access and document retention and deletion obligations."
+    },
+    {
+      "front": "Why are appeals part of safety system design?",
+      "back": "Appeals require durable decision history, evidence, and reversible enforcement because moderation can be wrong.",
+      "details": "Moderation decisions can be mistaken, so an appeal needs the original evidence, policy, decision path, and a mechanism to reverse sanctions. Track appeal outcomes to discover systematic false positives and policy drift. Ensure repeated events cannot silently reapply a revoked decision."
+    }
+  ]
+}

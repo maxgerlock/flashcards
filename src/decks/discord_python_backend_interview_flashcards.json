@@ -1,0 +1,341 @@
+{
+  "name": "Discord Python Backend Interview Prep",
+  "description": "Flashcards covering the Python backend technologies, frameworks, networking concepts, testing tools, architecture patterns, and engineering topics discussed for the Discord coding skill assessment.",
+  "cards": [
+    {
+      "front": "What is uv?",
+      "back": "A fast Python package, project, and virtual-environment manager.",
+      "details": "uv can initialize Python projects, create/manage virtual environments, install dependencies, maintain lockfiles, and run commands inside the project environment. For an interview, it reduces setup friction: commands like `uv add fastapi` and `uv run pytest` keep dependencies and execution consistent."
+    },
+    {
+      "front": "Why is uv useful in a coding interview?",
+      "back": "It minimizes environment and dependency-management overhead.",
+      "details": "uv gives you a quick way to initialize a project, add packages, sync dependencies, and run commands. That means less time troubleshooting virtualenvs or pip state and more time implementing the actual problem."
+    },
+    {
+      "front": "What is FastAPI?",
+      "back": "A modern Python framework for building HTTP APIs.",
+      "details": "FastAPI is an ASGI-based web framework built around Python type hints. It integrates closely with Pydantic for request validation and serialization and makes it easy to define typed HTTP routes with relatively little boilerplate."
+    },
+    {
+      "front": "Why is FastAPI a good interview choice?",
+      "back": "Low boilerplate, strong typing, validation, and fast iteration.",
+      "details": "FastAPI lets you implement HTTP endpoints quickly while still demonstrating sound engineering practices such as typed models, validation, dependency injection, explicit status codes, and clean separation between transport and business logic."
+    },
+    {
+      "front": "What is an ASGI server?",
+      "back": "A server that runs async-capable Python web applications.",
+      "details": "ASGI is the interface between an asynchronous Python web application and the server process. FastAPI is an ASGI application; a server such as Uvicorn accepts network connections and invokes the application."
+    },
+    {
+      "front": "What is Uvicorn?",
+      "back": "An ASGI server commonly used to run FastAPI apps.",
+      "details": "Uvicorn listens for HTTP connections and runs the FastAPI application. FastAPI defines application behavior; Uvicorn is the network-facing server process that serves it."
+    },
+    {
+      "front": "What is Pydantic?",
+      "back": "A Python library for typed data parsing and validation.",
+      "details": "Pydantic uses Python type annotations to validate and parse external data. FastAPI commonly uses Pydantic models for request bodies and response schemas, which gives you structured validation and predictable serialization."
+    },
+    {
+      "front": "Where should Pydantic models usually live architecturally?",
+      "back": "At API boundaries rather than throughout the domain layer.",
+      "details": "Pydantic is excellent for parsing and validating external input. Internally, plain Python classes or dataclasses can reduce coupling between application logic and the HTTP framework."
+    },
+    {
+      "front": "What is a Python dataclass?",
+      "back": "A concise way to define data-oriented Python classes.",
+      "details": "The `@dataclass` decorator automatically generates methods such as `__init__` and equality behavior for classes that primarily store data. Dataclasses are useful for internal domain models that do not need Pydantic validation."
+    },
+    {
+      "front": "What does FastAPI's Depends provide?",
+      "back": "Dependency injection for routes and application components.",
+      "details": "FastAPI's `Depends` can supply shared services, repositories, authentication state, database sessions, and other dependencies to route handlers. It can help keep routes small and make components easier to substitute in tests."
+    },
+    {
+      "front": "What is HTTPException in FastAPI?",
+      "back": "A mechanism for returning explicit HTTP error responses.",
+      "details": "Raising `HTTPException` lets a route or dependency terminate processing with a specific HTTP status code and error payload, such as 404 for a missing resource or 409 for a conflict."
+    },
+    {
+      "front": "What is a FastAPI response model?",
+      "back": "A declared schema for an endpoint's response body.",
+      "details": "A response model documents and validates the structure returned by an endpoint. It can prevent accidental field leakage and makes API contracts explicit."
+    },
+    {
+      "front": "What is asyncio?",
+      "back": "Python's standard library for asynchronous I/O and concurrency.",
+      "details": "asyncio provides an event loop, coroutines, tasks, queues, locks, and networking primitives. It is especially useful for workloads where many operations spend time waiting on network or other I/O."
+    },
+    {
+      "front": "What does async def define?",
+      "back": "A coroutine function that can suspend with await.",
+      "details": "Calling an `async def` function returns a coroutine. When awaited, it can yield control while waiting for asynchronous operations, allowing the event loop to run other tasks."
+    },
+    {
+      "front": "What does await do?",
+      "back": "Suspends a coroutine until an async operation completes.",
+      "details": "While one coroutine is waiting on I/O, `await` lets the event loop execute other runnable coroutines. This enables high concurrency without requiring one operating-system thread per connection."
+    },
+    {
+      "front": "What is an event loop?",
+      "back": "The scheduler that runs and resumes asynchronous tasks.",
+      "details": "The event loop tracks coroutines and I/O readiness. When one task reaches an await point, the loop can run another task until the awaited operation is ready."
+    },
+    {
+      "front": "What does asyncio.create_task() do?",
+      "back": "Schedules a coroutine to run concurrently.",
+      "details": "`asyncio.create_task()` wraps a coroutine in a Task and schedules it on the current event loop. It is useful when work should proceed concurrently rather than being awaited immediately."
+    },
+    {
+      "front": "What does asyncio.gather() do?",
+      "back": "Waits for multiple awaitables to complete together.",
+      "details": "`asyncio.gather()` is commonly used to launch or await several asynchronous operations concurrently and collect their results."
+    },
+    {
+      "front": "What is asyncio.Queue useful for?",
+      "back": "Passing work safely between asynchronous producers and consumers.",
+      "details": "An `asyncio.Queue` provides backpressure-friendly coordination between coroutines. It is useful for worker patterns, event dispatch, and decoupling producers from consumers within a process."
+    },
+    {
+      "front": "What is asyncio.Lock used for?",
+      "back": "Protecting shared state accessed by concurrent coroutines.",
+      "details": "Even in a single-threaded event loop, tasks can interleave at await points. A lock can protect multi-step operations that must not be interleaved when they mutate shared in-memory state."
+    },
+    {
+      "front": "What does asyncio.start_server() do?",
+      "back": "Starts an asynchronous TCP server.",
+      "details": "`asyncio.start_server()` accepts TCP connections and invokes a coroutine for each client. It is useful for implementing custom line-oriented or binary protocols without an HTTP framework."
+    },
+    {
+      "front": "What are StreamReader and StreamWriter?",
+      "back": "High-level asyncio interfaces for reading and writing TCP data.",
+      "details": "`StreamReader` lets you await incoming bytes or lines, while `StreamWriter` sends bytes to the connection. Together they provide a simpler interface than directly managing low-level sockets."
+    },
+    {
+      "front": "Why is nc/netcat relevant to the Discord assessment?",
+      "back": "It may be used to test a raw TCP or line-oriented server.",
+      "details": "Netcat opens a basic TCP connection and lets you type or pipe bytes directly to a server. Since the assessment explicitly asks candidates to have it installed, preparing for a non-HTTP networking phase is prudent."
+    },
+    {
+      "front": "How does nc differ from curl?",
+      "back": "nc sends raw TCP data; curl understands application protocols like HTTP.",
+      "details": "curl is convenient for making HTTP requests with headers, methods, and bodies. Netcat operates at a lower level and is useful for interacting with custom TCP protocols."
+    },
+    {
+      "front": "When should a FastAPI handler be async?",
+      "back": "When it awaits asynchronous I/O or concurrency primitives.",
+      "details": "Using `async def` is valuable when the handler calls async databases, network services, files, queues, or other awaitable operations. Purely synchronous work does not automatically benefit from being declared async."
+    },
+    {
+      "front": "Why not make every function async?",
+      "back": "Async adds complexity without helping synchronous work.",
+      "details": "Async interfaces propagate through call stacks and complicate testing and reasoning. Use asynchronous code where concurrent I/O provides a real benefit rather than as a default style."
+    },
+    {
+      "front": "What is pytest?",
+      "back": "A popular Python testing framework.",
+      "details": "pytest provides simple assertion-based tests, fixtures, parametrization, test discovery, and a large plugin ecosystem. It is well suited to demonstrating correctness incrementally during an interview."
+    },
+    {
+      "front": "What is a pytest fixture?",
+      "back": "Reusable setup data or resources supplied to tests.",
+      "details": "Fixtures can create application instances, repositories, test clients, sample data, or temporary databases. pytest injects them into test functions by parameter name."
+    },
+    {
+      "front": "What is pytest parametrization?",
+      "back": "Running one test against multiple input/output cases.",
+      "details": "Parametrization helps cover boundary cases without duplicating test code. It is useful for validation rules, status codes, parsing behavior, and edge cases."
+    },
+    {
+      "front": "What is HTTPX?",
+      "back": "A modern Python HTTP client with sync and async APIs.",
+      "details": "HTTPX can call external HTTP services and is also used under FastAPI's testing utilities. It supports both synchronous and asynchronous clients."
+    },
+    {
+      "front": "What is FastAPI TestClient?",
+      "back": "A convenient client for testing FastAPI endpoints in-process.",
+      "details": "TestClient lets pytest issue HTTP-style requests against your FastAPI application without manually starting a separate server process. It is useful for endpoint-level integration tests."
+    },
+    {
+      "front": "What is SQLite?",
+      "back": "An embedded relational database stored in a local file.",
+      "details": "SQLite requires no separate database server and supports standard SQL and transactions. It is ideal when an interview problem evolves from in-memory storage to persistence without needing infrastructure setup."
+    },
+    {
+      "front": "Why prefer SQLite over Postgres initially in an interview?",
+      "back": "It adds persistence without infrastructure overhead.",
+      "details": "SQLite can demonstrate schemas, transactions, indexes, and durable storage while keeping setup nearly zero. Postgres may be appropriate later, but Docker and server configuration can distract from the core exercise."
+    },
+    {
+      "front": "What is SQLAlchemy?",
+      "back": "A Python SQL toolkit and ORM.",
+      "details": "SQLAlchemy provides database abstractions, SQL expression construction, connection management, and ORM features. It is useful for nontrivial relational persistence but may be unnecessary for a small assessment."
+    },
+    {
+      "front": "What is a repository pattern?",
+      "back": "An abstraction separating domain logic from data storage.",
+      "details": "A repository exposes operations such as `get`, `create`, or `delete` without forcing application logic to know whether data lives in memory, SQLite, Postgres, or another store."
+    },
+    {
+      "front": "Why start with an in-memory repository?",
+      "back": "It keeps early phases simple while preserving replaceable storage.",
+      "details": "An in-memory implementation is fast to build and test. If the storage contract is defined behind a repository interface, a later persistence requirement can be handled by swapping implementations."
+    },
+    {
+      "front": "What is a service layer?",
+      "back": "The layer that contains application and business logic.",
+      "details": "A service layer sits between transports such as HTTP/TCP and data access. It prevents route handlers from becoming the place where validation, business rules, persistence, and side effects are all mixed together."
+    },
+    {
+      "front": "What should a thin API route do?",
+      "back": "Parse input, call application logic, and map results to HTTP.",
+      "details": "Ideally a route focuses on transport concerns: request parsing, authentication, status codes, and serialization. Domain rules should live in services or domain objects that can be tested independently."
+    },
+    {
+      "front": "What is dependency inversion in this context?",
+      "back": "Business logic depends on interfaces, not storage implementations.",
+      "details": "For example, `MessageService` can depend on a repository contract instead of directly creating a SQLite connection. Tests can then inject an in-memory implementation and production code can inject persistent storage."
+    },
+    {
+      "front": "What does progressive complexity test?",
+      "back": "Whether a simple design can evolve cleanly as requirements change.",
+      "details": "A phased interview often evaluates whether you avoid both under-design and premature overengineering. Good boundaries let you add persistence, concurrency, or new transports without rewriting everything."
+    },
+    {
+      "front": "What is premature overengineering?",
+      "back": "Adding complexity before requirements justify it.",
+      "details": "Starting with Docker, Redis, Postgres, message queues, migrations, and multiple services can slow implementation and create failure modes when a simple in-process design would satisfy the current phase."
+    },
+    {
+      "front": "Why avoid unnecessary Docker Compose in the assessment?",
+      "back": "It adds operational complexity that may not improve the solution.",
+      "details": "Containers are valuable when infrastructure isolation matters, but during a timed coding exercise they can consume time on configuration, networking, and startup rather than demonstrating core engineering judgment."
+    },
+    {
+      "front": "Why avoid Redis unless the problem needs it?",
+      "back": "It introduces distributed-state complexity without automatic benefit.",
+      "details": "Redis is useful for shared caches, locks, queues, rate limits, and ephemeral state. But an assessment should usually begin with local state unless requirements explicitly demand sharing across processes or durable distributed coordination."
+    },
+    {
+      "front": "Why avoid Celery unless required?",
+      "back": "Background-job infrastructure is unnecessary for simple local work.",
+      "details": "Celery is useful for durable distributed task execution, but it adds brokers, workers, serialization, retry semantics, and operational complexity. `asyncio` tasks may be sufficient for an interview-scale process."
+    },
+    {
+      "front": "What does HTTP 200 mean?",
+      "back": "The request succeeded and returns a normal response.",
+      "details": "200 OK is the standard success status for many GET requests and operations that return a response body."
+    },
+    {
+      "front": "What does HTTP 201 mean?",
+      "back": "A new resource was successfully created.",
+      "details": "201 Created is appropriate for successful creation endpoints, typically POST requests that create a new server-side resource."
+    },
+    {
+      "front": "What does HTTP 204 mean?",
+      "back": "The request succeeded with no response body.",
+      "details": "204 No Content is commonly used for successful deletes or updates when the server has nothing useful to return."
+    },
+    {
+      "front": "What does HTTP 400 mean?",
+      "back": "The client sent an invalid request.",
+      "details": "400 Bad Request is appropriate for malformed or semantically invalid client input when a more specific status is not suitable."
+    },
+    {
+      "front": "What does HTTP 404 mean?",
+      "back": "The requested resource was not found.",
+      "details": "404 Not Found is appropriate when the URL refers to a resource identifier that does not exist or is intentionally not exposed."
+    },
+    {
+      "front": "What does HTTP 409 mean?",
+      "back": "The request conflicts with current server state.",
+      "details": "409 Conflict can represent duplicate resources, version conflicts, invalid state transitions, or other cases where the request is valid in isolation but conflicts with existing state."
+    },
+    {
+      "front": "What does HTTP 422 mean?",
+      "back": "The request syntax was valid but validation failed.",
+      "details": "FastAPI commonly uses 422 for request bodies whose structure parses but fails schema validation, such as missing required fields or values outside allowed constraints."
+    },
+    {
+      "front": "What does HTTP 500 mean?",
+      "back": "The server encountered an unexpected internal error.",
+      "details": "500 Internal Server Error should generally represent bugs or unexpected failures rather than errors caused by valid, anticipated client behavior."
+    },
+    {
+      "front": "What is idempotency?",
+      "back": "Repeating an operation has the same effect as doing it once.",
+      "details": "GET, PUT, and DELETE are generally intended to be idempotent at the HTTP semantic level. Idempotency is important for safe retries after network failures."
+    },
+    {
+      "front": "What is pagination?",
+      "back": "Returning large result sets in bounded chunks.",
+      "details": "Pagination limits response size and server work. Common approaches include offset pagination and cursor/keyset pagination; cursor-based approaches are often more stable for frequently changing datasets."
+    },
+    {
+      "front": "Why use Python type hints in the assessment?",
+      "back": "They clarify contracts and improve tooling and readability.",
+      "details": "Type hints make interfaces more explicit, help IDEs and static analyzers, integrate directly with FastAPI/Pydantic, and communicate intent to interviewers and AI coding tools."
+    },
+    {
+      "front": "What does `User | None` mean in modern Python?",
+      "back": "A value may be a User or None.",
+      "details": "The `|` union syntax was introduced as a concise alternative to `Optional[User]` or `Union[User, None]`. It makes nullable values explicit in type signatures."
+    },
+    {
+      "front": "What is typing.Protocol?",
+      "back": "A way to define structural interfaces using type hints.",
+      "details": "A Protocol describes methods or attributes an object must provide without requiring explicit inheritance. It is useful for repository interfaces that can have in-memory and SQLite implementations."
+    },
+    {
+      "front": "What is Ruff?",
+      "back": "A fast Python linter and formatter.",
+      "details": "Ruff can enforce style rules, catch common errors, organize imports, and format Python code quickly. It is useful in an interview if already configured, but it should not become a distraction."
+    },
+    {
+      "front": "What is a transport layer?",
+      "back": "Code that handles communication protocols such as HTTP or TCP.",
+      "details": "The transport layer converts external protocol messages into application calls and converts application results back into protocol responses. FastAPI routes and TCP connection handlers are examples."
+    },
+    {
+      "front": "Why separate HTTP/TCP transport from domain logic?",
+      "back": "The same business logic can support multiple interfaces.",
+      "details": "If HTTP routes and TCP handlers both call the same service layer, adding a new protocol does not require duplicating core behavior. It also makes unit testing easier."
+    },
+    {
+      "front": "What is backpressure?",
+      "back": "Controlling producers when consumers cannot keep up.",
+      "details": "Without backpressure, incoming work can accumulate without bound and exhaust memory. Bounded queues, flow control, and `StreamWriter.drain()` are mechanisms that help regulate throughput."
+    },
+    {
+      "front": "What does StreamWriter.drain() help with?",
+      "back": "Flow control when buffered network writes build up.",
+      "details": "After writing bytes, awaiting `drain()` gives the transport a chance to pause the producer when the output buffer is too full, helping prevent unbounded buffering."
+    },
+    {
+      "front": "What is shared mutable state?",
+      "back": "Data that multiple concurrent tasks can read and change.",
+      "details": "Shared mutable state can create race conditions when operations interleave. Even with asyncio, a task can yield at an await point, allowing another task to observe or modify state before the first task finishes."
+    },
+    {
+      "front": "What is a race condition?",
+      "back": "Behavior that depends on unpredictable operation interleaving.",
+      "details": "A race occurs when correctness depends on the timing of concurrent operations. Locks, atomic database operations, queues, or redesigning ownership of state can eliminate races."
+    },
+    {
+      "front": "What is an integration test?",
+      "back": "A test covering interactions between multiple components.",
+      "details": "For example, a FastAPI TestClient request that passes through routing, validation, a service, and a repository is an integration-style test, even if all components run in one process."
+    },
+    {
+      "front": "What is a unit test?",
+      "back": "A test focused on one component in isolation.",
+      "details": "A service-layer unit test might inject a fake or in-memory repository and verify business rules without starting FastAPI or opening a network socket."
+    },
+    {
+      "front": "What is the best phased-development strategy?",
+      "back": "Build the simplest correct phase, preserve boundaries, then evolve.",
+      "details": "Meet the current requirement cleanly, add tests, and avoid guessing future requirements. Introduce abstractions only where they make likely changes easier or where the current design is already becoming tangled."
+    }
+  ]
+}

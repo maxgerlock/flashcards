@@ -1,0 +1,131 @@
+{
+  "name": "Modern Software Architecture & Design Patterns",
+  "description": "High-value software architecture paradigms and design patterns for senior software engineering and system design interviews.",
+  "cards": [
+    {
+      "front": "What is a modular monolith?",
+      "back": "A single deployable application with strong internal module boundaries.",
+      "details": "A modular monolith keeps deployment simple while organizing the code into relatively independent domains or modules. It avoids much of the networking, deployment, and consistency complexity of microservices while reducing the tight coupling of an unstructured monolith. It is often a strong default for systems that do not yet need independently deployed services."
+    },
+    {
+      "front": "What is the main goal of microservices?",
+      "back": "Independent ownership, deployment, and scaling of bounded services.",
+      "details": "Microservices split a system into independently deployable services, usually aligned with business capabilities or bounded contexts. Their major benefits are team autonomy, fault isolation, independent scaling, and independent release cycles. Their costs include network failures, eventual consistency, distributed tracing, service discovery, and operational complexity."
+    },
+    {
+      "front": "What is a distributed monolith?",
+      "back": "Many services that remain tightly coupled and cannot evolve independently.",
+      "details": "A distributed monolith has the operational complexity of microservices without their independence. Services may require synchronized deployments, make long chains of synchronous calls, or share databases and internal assumptions. This is generally an architectural smell because failures and changes propagate across service boundaries."
+    },
+    {
+      "front": "What is Domain-Driven Design (DDD)?",
+      "back": "Designing software around business domains and their boundaries.",
+      "details": "DDD models software around the language and concepts of the business domain rather than primarily around technical layers. Important concepts include bounded contexts, entities, value objects, aggregates, repositories, and ubiquitous language. It is most valuable when the business domain itself is complex."
+    },
+    {
+      "front": "What is a bounded context?",
+      "back": "A boundary within which a domain model and terminology are consistent.",
+      "details": "A bounded context defines where a particular model and vocabulary apply. The same real-world concept can have different representations in different contexts. In a Discord-like system, Messaging, Billing, Identity, Guilds, and Trust & Safety might each form separate bounded contexts."
+    },
+    {
+      "front": "What is event-driven architecture?",
+      "back": "Services communicate by publishing and consuming asynchronous events.",
+      "details": "In event-driven architecture, producers publish facts such as MessageCreated without needing to know all consumers. Search indexing, moderation, analytics, and notifications can consume the same event independently. Benefits include loose coupling and scalability; costs include eventual consistency, retries, duplicate handling, ordering, and more difficult debugging."
+    },
+    {
+      "front": "How does event sourcing differ from event-driven architecture?",
+      "back": "Event sourcing stores events as the source of truth; event-driven does not.",
+      "details": "An event-driven system merely communicates through events. An event-sourced system persists the sequence of state-changing events as the authoritative record and derives current state by replaying or projecting them. You can use Kafka extensively without making your system event-sourced."
+    },
+    {
+      "front": "What is CQRS?",
+      "back": "Separating write models from read models.",
+      "details": "Command Query Responsibility Segregation allows writes and reads to use different models or stores optimized for their workloads. For example, a message write path could persist authoritative state while separate projections support channel history, search, analytics, or moderation. CQRS does not require event sourcing."
+    },
+    {
+      "front": "What is a stateless service?",
+      "back": "A service instance that stores no required session state locally.",
+      "details": "Stateless instances keep durable or shared state in external systems such as databases, Redis, or object storage. Any healthy instance can therefore handle any request, which simplifies load balancing, horizontal scaling, restarts, and autoscaling."
+    },
+    {
+      "front": "What is an API gateway?",
+      "back": "A shared entry point that routes and governs client API traffic.",
+      "details": "An API gateway typically handles concerns such as routing, authentication enforcement, rate limiting, request logging, TLS termination, and sometimes response aggregation. It sits between external clients and internal services, hiding much of the internal service topology."
+    },
+    {
+      "front": "What is the Backend-for-Frontend (BFF) pattern?",
+      "back": "A backend layer tailored to the needs of a specific client type.",
+      "details": "A BFF gives web, iOS, Android, or other clients specialized APIs rather than forcing every client through one generic interface. It can aggregate internal service calls and shape responses for the client's performance and UX needs."
+    },
+    {
+      "front": "What problem does the transactional outbox solve?",
+      "back": "Keeping a database write and event publication reliably consistent.",
+      "details": "A service writes both the domain change and an outbox record in the same database transaction. A separate worker or CDC mechanism later publishes the outbox event to Kafka. This prevents the failure mode where the database commit succeeds but event publication fails, or vice versa."
+    },
+    {
+      "front": "What is the Saga pattern?",
+      "back": "A distributed workflow using local transactions and compensating actions.",
+      "details": "A saga coordinates a business process spanning multiple services without a global ACID transaction. Each service performs a local transaction. If a later step fails, compensating operations undo or offset earlier work, such as refunding a payment after inventory reservation fails."
+    },
+    {
+      "front": "What is hexagonal or ports-and-adapters architecture?",
+      "back": "Domain logic depends on interfaces, not infrastructure implementations.",
+      "details": "The application core exposes or consumes ports such as MessageRepository or EventPublisher. Infrastructure adapters implement those ports using Cassandra, Postgres, Kafka, HTTP, or other technologies. This keeps business logic decoupled from frameworks and infrastructure and improves testability."
+    },
+    {
+      "front": "What is vertical-slice architecture?",
+      "back": "Organizing code by feature or use case instead of technical layer.",
+      "details": "Rather than placing every controller, service, and repository in separate global folders, vertical slices colocate the code needed for a specific capability such as SendMessage or CancelSubscription. This can improve cohesion and make features easier to understand and change."
+    },
+    {
+      "front": "What does dependency injection accomplish?",
+      "back": "Dependencies are supplied externally rather than constructed internally.",
+      "details": "A MessageService might receive a MessageRepository and EventPublisher instead of constructing Cassandra or Kafka clients itself. This reduces coupling, makes dependencies explicit, and makes testing easier because implementations can be substituted."
+    },
+    {
+      "front": "What does contract-first API development mean?",
+      "back": "Define the service interface before implementing the service.",
+      "details": "Teams define an OpenAPI, Protobuf, Avro, or similar schema before implementation. This creates a stable contract, enables generated clients and types, improves compatibility checks, and allows teams to work independently against a shared interface."
+    },
+    {
+      "front": "Why are retries dangerous in distributed systems?",
+      "back": "A retry can repeat an operation that actually succeeded.",
+      "details": "Network timeouts create ambiguity: the client may not know whether the server processed the request. Retrying a non-idempotent operation can duplicate effects such as payments or messages. Systems therefore combine retries with idempotency keys, deduplication, exponential backoff, and jitter."
+    },
+    {
+      "front": "What is the bulkhead pattern?",
+      "back": "Isolating resources so one failure cannot exhaust the whole system.",
+      "details": "Bulkheads separate resources such as thread pools, connection pools, queues, or service instances. If one dependency or workload becomes overloaded, its resource exhaustion is contained rather than taking down unrelated functionality."
+    },
+    {
+      "front": "What is a circuit breaker?",
+      "back": "Temporarily stop calls to a dependency that is repeatedly failing.",
+      "details": "After enough failures, a circuit breaker opens and rejects or short-circuits calls rather than continually hammering an unhealthy dependency. After a cooldown it may allow test requests through. This reduces cascading failures and gives dependencies time to recover."
+    },
+    {
+      "front": "Why is observability critical in microservices?",
+      "back": "Failures span many services and cannot be understood from one process.",
+      "details": "Distributed systems require structured logs, metrics, and traces to understand end-to-end behavior. Distributed tracing propagates a trace or correlation ID through gateways, services, queues, and databases so engineers can reconstruct the path and latency of a request."
+    },
+    {
+      "front": "What is Infrastructure as Code (IaC)?",
+      "back": "Defining infrastructure declaratively in version-controlled code.",
+      "details": "Tools such as Terraform, Pulumi, CloudFormation, or Bicep define networks, databases, queues, compute, and other infrastructure in code. This makes environments reproducible, reviewable, automatable, and less prone to manual configuration drift."
+    },
+    {
+      "front": "What is CI/CD?",
+      "back": "Automating integration, testing, packaging, and deployment.",
+      "details": "Continuous Integration validates small changes frequently. Continuous Delivery or Deployment automates the path from validated code to production. Common supporting techniques include trunk-based development, feature flags, canary releases, and blue/green deployment."
+    },
+    {
+      "front": "When should you prefer synchronous RPC over events?",
+      "back": "When the caller needs an immediate result to continue.",
+      "details": "HTTP or gRPC is appropriate when a request depends directly on another service's response, such as fetching authorization data or completing a command. Events are better when downstream work can happen asynchronously and the producer should not depend on the consumers."
+    },
+    {
+      "front": "When should you prefer asynchronous events over RPC?",
+      "back": "When work can be decoupled and processed independently or later.",
+      "details": "Events are useful for fan-out, background work, integrations, analytics, notifications, and projections. They reduce temporal coupling because producers do not require consumers to be available at the same moment, but they introduce eventual consistency and delivery semantics."
+    }
+  ]
+}

@@ -1,0 +1,506 @@
+{
+  "name": "Senior System Design — Discord Interview Prep, Part 2",
+  "description": "Additional system design concepts for Discord interview preparation.",
+  "cards": [
+    {
+      "front": "What should you clarify before choosing infrastructure?",
+      "back": "Requirements, scale, access patterns, consistency needs, and failure tolerance.",
+      "details": "Ask about users, traffic, peak writes and reads, data volume, access patterns, latency targets, and retention. Identify what must never go wrong, what may be delayed, and the expected outage behavior. These answers determine whether a single relational database is enough or a specialized component is warranted."
+    },
+    {
+      "front": "What is a system invariant?",
+      "back": "A condition that must remain true despite retries, failures, or concurrency.",
+      "details": "An invariant is a rule the system must preserve across concurrent requests, retries, and partial failures. Examples include one entitlement per successful purchase or never exposing a private message to an unauthorized user. Implement it at an authoritative boundary with transactions, constraints, or conditional writes."
+    },
+    {
+      "front": "Why state invariants early in system design?",
+      "back": "They determine where strong consistency and transactional guarantees are required.",
+      "details": "An invariant tells you which operations must be atomic and which results must be observed immediately. Without it, an architecture may casually use eventual consistency for a payment or permission check that requires correctness. State the rule, then show where it is enforced and how retries preserve it."
+    },
+    {
+      "front": "What is the simplest good starting architecture?",
+      "back": "Client → API/service → database, then add complexity only when requirements demand it.",
+      "details": "Begin with a client, stateless API, and authoritative database, specifying one successful read and write path. This exposes the actual bottleneck and correctness needs before introducing caches, brokers, or shards. Add each component to address a measured or clearly estimated requirement."
+    },
+    {
+      "front": "What is horizontal scaling?",
+      "back": "Adding more machines or instances rather than making one machine larger.",
+      "details": "Horizontal scaling adds instances or nodes so work can be spread across them. Stateless APIs are straightforward to scale this way; shared state and database writes need deliberate partitioning or coordination. Capacity does not rise linearly if every request still hits one overloaded dependency."
+    },
+    {
+      "front": "What is vertical scaling?",
+      "back": "Increasing CPU, memory, or resources on an existing machine.",
+      "details": "Vertical scaling gives one machine more CPU, RAM, storage, or network capacity. It is simple operationally and can buy substantial headroom, but has hardware ceilings and can increase single-node failure impact. It is often a sensible first step before data sharding."
+    },
+    {
+      "front": "What is sharding?",
+      "back": "Splitting data across independent partitions or database nodes.",
+      "details": "Sharding assigns subsets of data to different physical nodes, usually using a key or routing map. Each request must locate the correct shard; cross-shard queries and transactions become harder. Resharding and uneven tenant sizes are ongoing operational concerns."
+    },
+    {
+      "front": "Why shard a database?",
+      "back": "To distribute storage and throughput beyond one node's limits.",
+      "details": "A database can hit limits in storage size, write throughput, or read throughput on one node. Sharding distributes those resources across machines. It introduces routing, rebalancing, backup, and cross-shard query complexity, so use it when simpler scaling approaches no longer meet requirements."
+    },
+    {
+      "front": "What makes a good shard key?",
+      "back": "High cardinality, balanced traffic, and alignment with common queries.",
+      "details": "The key should spread writes and bytes, remain stable, and match common query paths. Avoid a few dominant values that create hot spots, and consider whether related records need ordered range reads. Assess skew and resharding costs with realistic production distributions."
+    },
+    {
+      "front": "Why can channel_id be a bad shard key alone?",
+      "back": "A huge channel can become a hot shard or partition.",
+      "details": "A very busy channel can send all writes for that key to one shard, despite having many other shards. Splitting by time or another subkey bounds partition size, but a single live hot channel may still need finer write distribution. Design reads to merge or locate the resulting partitions."
+    },
+    {
+      "front": "What is time bucketing?",
+      "back": "Adding a time range to partition keys to limit partition size and hotspots.",
+      "details": "Time bucketing appends a bounded time interval to a partition key, for example a channel and a month. It limits how much history lives in one partition and simplifies lifecycle management. Queries spanning buckets must fetch and merge them, and one exceptionally active bucket can still be hot."
+    },
+    {
+      "front": "Example of a chat partition key using time buckets?",
+      "back": "(channel_id, month) or (channel_id, week).",
+      "details": "A key such as (channel_id, month) keeps messages for one channel and time window together, with message ID or timestamp as clustering order. Pagination near a bucket boundary may read the adjacent month. Bucket size should reflect actual volume; a huge channel might need smaller intervals."
+    },
+    {
+      "front": "What is denormalization?",
+      "back": "Duplicating derived data to make reads faster or simpler.",
+      "details": "Denormalization stores copies or precomputed views optimized for specific reads, such as channel metadata alongside a message preview. It can avoid joins or expensive aggregation. Define the authoritative copy and the mechanism that refreshes each derived copy after updates or deletions."
+    },
+    {
+      "front": "Main cost of denormalization?",
+      "back": "More complex writes and consistency between duplicated copies.",
+      "details": "Every duplicated representation becomes another write or update path and may temporarily disagree with the source. Retried events require idempotent projection updates; deletion and permission changes can be especially sensitive. Account for storage growth, backfills, and reconciliation of drift."
+    },
+    {
+      "front": "When is a relational DB a strong choice?",
+      "back": "Structured data, transactions, joins, constraints, and moderate scale.",
+      "details": "PostgreSQL and similar systems support transactions, constraints, indexes, and flexible queries for well-structured relationships. They are excellent defaults for accounts, billing, and metadata. Check actual scale and query plans before assuming a distributed store is necessary."
+    },
+    {
+      "front": "When is a wide-column store useful?",
+      "back": "Huge scale with predictable key-based access and denormalized data models.",
+      "details": "A wide-column store fits very large volumes of writes and predictable queries by partition and clustering key. The model is designed around access patterns, often duplicating data rather than joining arbitrary tables. Partition sizing, consistency levels, repair, and hot keys require deliberate design."
+    },
+    {
+      "front": "Why might Discord use ScyllaDB-style storage for messages?",
+      "back": "High write throughput and efficient partitioned retrieval at very large scale.",
+      "details": "ScyllaDB-like systems can distribute heavy message write volume and fetch ordered history by a modeled key at large scale. This is a workload fit, not a claim about Discord's current internal architecture. The tradeoffs include limited ad hoc joins, partition design, operational complexity, and consistency choices."
+    },
+    {
+      "front": "What is cursor pagination?",
+      "back": "Pagination based on a stable item position or ID rather than numeric offsets.",
+      "details": "A cursor names a position in a stable order, often using a sortable ID plus a tie breaker. The next page queries records before or after that position rather than skipping a numeric count. Include filter and sort context in opaque cursors so pagination stays valid and unambiguous."
+    },
+    {
+      "front": "Why prefer cursor pagination at scale?",
+      "back": "It avoids expensive offsets and behaves better as data changes.",
+      "details": "A keyset query can seek into an index near the cursor instead of scanning and discarding a large offset. Concurrent inserts near the beginning of a feed are less likely to shift page boundaries. A stable deterministic sort order and appropriate index are required."
+    },
+    {
+      "front": "What is offset pagination's main weakness?",
+      "back": "Large offsets become expensive and inserts can cause skipped or duplicated results.",
+      "details": "OFFSET 100000 often requires processing and discarding many rows before returning a page. Inserts or deletes between requests shift numeric positions, causing duplicates or omissions. It remains useful for small, relatively static datasets or direct page-number navigation."
+    },
+    {
+      "front": "Why use sortable message IDs?",
+      "back": "They support chronological ordering and efficient range pagination.",
+      "details": "Time-sortable identifiers can serve as stable cursors and preserve approximate creation order without sorting by an extra timestamp. They may also help route or index range reads. Do not infer that IDs are gapless or globally sequential unless the ID generator explicitly guarantees it."
+    },
+    {
+      "front": "What is strong consistency?",
+      "back": "A successful write is immediately reflected by subsequent reads.",
+      "details": "Under the stated consistency model, a completed write is visible to subsequent reads through the relevant authoritative path. This may require reading a leader, quorum reads and writes, or transactional isolation. Specify the scope: strong consistency does not automatically mean every replica and cache is immediately updated."
+    },
+    {
+      "front": "What is eventual consistency?",
+      "back": "Replicas or derived state may lag but converge later.",
+      "details": "Replicas or materialized views can temporarily show older data before converging to the latest accepted state. This improves availability and decouples work, but clients need clear staleness expectations. It is inappropriate where temporary disagreement would violate a business invariant."
+    },
+    {
+      "front": "Which data often needs strong consistency in commerce?",
+      "back": "Charges, subscription state, ownership, and entitlement invariants.",
+      "details": "Charging a customer, recording ownership, and making an entitlement authoritative demand careful transactional or idempotent coordination. Some steps span a payment provider and cannot share one database transaction; use a durable state machine and reconciliation. The user-facing status should reflect whether access has actually been granted."
+    },
+    {
+      "front": "Which data can often be eventually consistent?",
+      "back": "Analytics, search indexes, metrics, and some cached UI state.",
+      "details": "Analytics, search indexes, metrics, and noncritical UI counters can usually lag behind the source of truth. Define an acceptable lag and a way to recover by replay or backfill. Permission and billing decisions should use an authoritative path when stale data would be harmful."
+    },
+    {
+      "front": "What is read-after-write consistency?",
+      "back": "A client can immediately read its own successful write.",
+      "details": "A user who just wrote data can read that write immediately, even if other replicas remain behind. Routing that user's reads to an up-to-date replica or returning the created record can provide this guarantee. It is weaker than guaranteeing globally latest reads for everyone."
+    },
+    {
+      "front": "What is a distributed transaction?",
+      "back": "One atomic operation spanning multiple independent systems.",
+      "details": "A distributed transaction coordinates one atomic outcome across separate services or stores, potentially using a protocol such as two-phase commit. Participants must agree despite delays or failures. It is costly and brittle compared with keeping an invariant inside one authoritative transactional boundary."
+    },
+    {
+      "front": "Why avoid distributed transactions when possible?",
+      "back": "They add latency, coordination, failure modes, and operational complexity.",
+      "details": "Cross-system atomicity requires coordination, holds resources during uncertainty, and creates difficult recovery cases when participants fail. Prefer a local transaction with an outbox plus idempotent consumers when temporary downstream lag is acceptable. Use a distributed transaction only when its stronger guarantee is required and supported."
+    },
+    {
+      "front": "What is an idempotent operation?",
+      "back": "Repeating it has the same effective result as performing it once.",
+      "details": "Applying an operation twice has the same intended state effect as applying it once. A SET to a specific value is naturally idempotent, while incrementing a balance is not without deduplication. Consider the full side effect chain, including emails or payments, not only the database row."
+    },
+    {
+      "front": "What is an idempotency key?",
+      "back": "A client-supplied key used to recognize and reuse a prior request result.",
+      "details": "A stable identifier lets the server associate retries of one logical request with a stored outcome. Scope it to a caller and operation, validate reused keys with differing parameters, and retain it long enough for realistic retries. Concurrent requests with the same key must resolve to one effect."
+    },
+    {
+      "front": "Where is idempotency especially important?",
+      "back": "Payments, webhooks, retries, event consumers, and provisioning.",
+      "details": "Payments and provisioning can cause costly duplicate effects; webhooks and event consumers are routinely redelivered. Use stable operation IDs and durable uniqueness or conditional updates at the authoritative write. An in-memory seen set alone cannot survive restarts."
+    },
+    {
+      "front": "What is a duplicate delivery?",
+      "back": "The same logical event or request is processed more than once.",
+      "details": "A retry or broker redelivery can present the same logical request or event multiple times. This is normal under at-least-once processing, including when the first attempt completed but its acknowledgement was lost. Distinguish logical IDs from transport delivery IDs."
+    },
+    {
+      "front": "How should consumers handle duplicate events?",
+      "back": "Use stable IDs and make processing idempotent.",
+      "details": "Use a stable event ID, a uniqueness constraint or processed-event record, and atomic business update where possible. For state projections, a versioned upsert may be sufficient. Commit the consumer offset only after the effect is durable, or replay can lose work."
+    },
+    {
+      "front": "What is at-most-once delivery?",
+      "back": "Messages may be lost, but are never intentionally redelivered.",
+      "details": "The sender processes or acknowledges a message once without retrying it after uncertainty. That avoids duplicate delivery at the expense of possible loss on crashes. Suitable only when dropping occasional events is acceptable."
+    },
+    {
+      "front": "What is at-least-once delivery?",
+      "back": "Messages are retried until delivered, so duplicates are possible.",
+      "details": "The sender retries until an acknowledgement, so processing survives many transient failures but duplicates can occur. Consumers must make effects idempotent. Ack only after the intended durable work is completed."
+    },
+    {
+      "front": "Why is 'exactly once' often misleading?",
+      "back": "End-to-end exactly-once semantics are expensive and usually depend on idempotency.",
+      "details": "A broker may offer exactly-once processing within a constrained transactional scope, but external databases, APIs, and user devices are outside that scope. End-to-end outcomes usually still need idempotency and reconciliation. Always say precisely what is delivered, processed, and committed exactly once."
+    },
+    {
+      "front": "What does Kafka provide within one partition?",
+      "back": "An ordered append-only log with durable offsets and replay.",
+      "details": "Kafka appends records to an ordered log per partition and gives consumers offsets from which to resume or replay within retention. Ordering holds within that partition, not across independent partitions. Durability depends on replication and producer acknowledgment settings."
+    },
+    {
+      "front": "What does Kafka not provide globally by default?",
+      "back": "A total ordering across all partitions.",
+      "details": "Kafka partitions can process independently, so there is no single global event order unless you impose one elsewhere. A timestamp alone does not resolve all races or ties. Put events requiring ordered handling under a common key and partition, or use versions and reconciliation."
+    },
+    {
+      "front": "Why partition events by channel_id?",
+      "back": "Events for one channel stay ordered while different channels process independently.",
+      "details": "Using a channel key normally routes its events to one partition so a consumer sees them in partition order. Different channels can be processed concurrently. A very high-volume channel may become a hot partition, so ordering requirements and throughput limits must be balanced."
+    },
+    {
+      "front": "What is a Kafka consumer group?",
+      "back": "Consumers sharing work so each partition is handled by one group member.",
+      "details": "Consumers with the same group ID share partitions, with each partition assigned to at most one active member in that group at a time. Different groups independently consume the same topic for routing, indexing, or analytics. Adding consumers beyond partition count does not increase parallelism for that group."
+    },
+    {
+      "front": "Why retain Kafka events after consumption?",
+      "back": "For replay, recovery, debugging, and rebuilding derived state.",
+      "details": "A retained log lets consumers resume after downtime, replay a time range, or rebuild a projection when logic changes. This works only within retention and while the required event data remains available. Long-term authoritative history usually belongs in another store."
+    },
+    {
+      "front": "What does 'recover a consumer' mean?",
+      "back": "Restarting from its last committed offset after a crash or outage.",
+      "details": "After a crash or deployment, a consumer resumes from its committed offset, reprocesses any uncommitted work, and catches up to the log head. The handler must tolerate duplicates. If retention expired during downtime, it may need a snapshot or database backfill."
+    },
+    {
+      "front": "What is consumer lag?",
+      "back": "The gap between newest available events and a consumer's processed offset.",
+      "details": "Lag is the distance between the latest partition offset and a consumer group's committed or processed offset. Offset count alone does not reveal time delay if traffic changes. Measure event age too when freshness matters."
+    },
+    {
+      "front": "Why monitor consumer lag?",
+      "back": "Growing lag signals downstream systems cannot keep up.",
+      "details": "Sustained growth in lag suggests consumption is slower than production or that a consumer is stalled. It threatens freshness and may eventually exceed retention, making recovery impossible from the log alone. Alert on lag age, queue depth, failures, and throughput together."
+    },
+    {
+      "front": "What is a dead-letter queue?",
+      "back": "Storage for repeatedly failing messages that need later inspection or handling.",
+      "details": "A dead-letter queue isolates records that repeatedly fail processing so a poison message does not block a whole stream indefinitely. Record the original event, error, attempts, and context; define who investigates and how to replay safely. Do not silently treat dead-lettering as successful business processing."
+    },
+    {
+      "front": "When should retries use exponential backoff?",
+      "back": "When repeated immediate retries could overload a failing dependency.",
+      "details": "Backoff spreads retries when a dependency is unavailable, giving it time to recover instead of generating a request storm. Use bounded attempts, maximum delay, and a path for permanent failures. Retrying non-idempotent operations without a stable key can worsen the incident."
+    },
+    {
+      "front": "What is jitter in retry logic?",
+      "back": "Random delay added to prevent many clients retrying simultaneously.",
+      "details": "Jitter adds randomness to retry delays so thousands of clients do not retry together after the same outage. Full or decorrelated jitter is commonly paired with exponential backoff. Cap retries and overall time budget to avoid endless stale work."
+    },
+    {
+      "front": "What is the transactional outbox pattern?",
+      "back": "Commit business data and an event record atomically, then publish asynchronously.",
+      "details": "The service inserts both its business row and a corresponding outbox event in one local database transaction. A separate publisher reads unsent rows and writes them to Kafka or another broker. The outbox makes event intent durable, but publication and consumption can repeat."
+    },
+    {
+      "front": "What failure does an outbox prevent?",
+      "back": "DB commit succeeds but event publication is lost.",
+      "details": "If the database commit succeeds and the service crashes before publishing, direct broker publication loses the notification. An outbox row committed with the change survives that crash and can be retried. It does not make the broker and database one distributed transaction."
+    },
+    {
+      "front": "What is event sourcing?",
+      "back": "Persisting state changes as an ordered event history rather than only current state.",
+      "details": "Event sourcing treats the ordered sequence of domain changes as authoritative and reconstructs current state by replaying events or snapshots. It supports history and alternative projections, but schema evolution and replay semantics are demanding. Merely emitting events from a normal database is not event sourcing."
+    },
+    {
+      "front": "What is a materialized view?",
+      "back": "Queryable state derived from another source, such as an event stream.",
+      "details": "A materialized view is precomputed queryable state derived from other records or events. It improves read speed at the cost of write work and possible lag. Track its source position or version and provide a rebuild path."
+    },
+    {
+      "front": "Kafka vs. message database: core distinction?",
+      "back": "Kafka stores ordered changes; the DB serves efficient current-state queries.",
+      "details": "Kafka is a transport and retained log of changes, optimized for sequential consumption, replay, and multiple independent consumers. A message database is optimized to answer user queries such as history by channel and cursor. Either can be authoritative in a deliberate architecture, but their access patterns differ."
+    },
+    {
+      "front": "Why not query Kafka for normal chat history?",
+      "back": "It is optimized for sequential log consumption, not arbitrary channel-history queries.",
+      "details": "Kafka is indexed primarily by topic, partition, and offset; arbitrary channel-history filtering would require scanning and application-side work. A message store can index or partition by channel and ordered message ID. Retention may also expire older Kafka records."
+    },
+    {
+      "front": "What is a durable event log good for?",
+      "back": "Ordering, replay, fan-out, decoupling, and consumer recovery.",
+      "details": "A log decouples producers from consumers, preserves within-partition order, and lets consumers catch up or rebuild derived views. It is useful for notifications, search indexing, analytics, and state projections. It does not automatically guarantee side effects exactly once."
+    },
+    {
+      "front": "What is cold storage?",
+      "back": "Cheaper storage for old, infrequently accessed data.",
+      "details": "Cold storage uses lower-cost, higher-latency storage for data rarely read, often object storage. An archive needs searchable metadata or an index if users may request old history. Plan restore latency, legal retention, and deletion propagation."
+    },
+    {
+      "front": "How should old message data be archived?",
+      "back": "Via explicit archival jobs or lifecycle rules, not Kafka retention expiration.",
+      "details": "Select old records with an explicit scheduled job or lifecycle policy, copy and verify them in the archive, then update routing or indexes before deleting hot copies. Make transfers resumable and auditable. Ensure reads across hot and cold ranges work as promised."
+    },
+    {
+      "front": "Why shouldn't Kafka retention trigger archival?",
+      "back": "Retention is infrastructure cleanup, not a reliable business event.",
+      "details": "Kafka retention removes broker records based on time or size and does not emit a dependable per-message business event. An archive keyed to retention could miss records or race with deletion. Use an independently scheduled archival process tied to authoritative data."
+    },
+    {
+      "front": "What is a cache-aside pattern?",
+      "back": "Application reads cache first, then DB, then populates cache on misses.",
+      "details": "The application checks a cache, reads the database on a miss, then populates the cache. Writes usually update the database and invalidate or refresh affected keys. It is simple, but concurrent misses, stale values, and invalidation races need handling."
+    },
+    {
+      "front": "What is write-through caching?",
+      "back": "Writes update the cache and backing store together.",
+      "details": "A write updates both the backing store and cache along the write path, making cached reads more likely to be fresh. The design must define order and recovery if one update succeeds and the other fails. Strong atomicity across distinct systems is usually unavailable."
+    },
+    {
+      "front": "What is a cache stampede?",
+      "back": "Many clients simultaneously miss and hammer the backing store.",
+      "details": "Many requests for the same popular key miss simultaneously, often right after expiry, and overwhelm the database. Mitigate with request coalescing, staggered TTLs, stale-while-revalidate where safe, or prewarming. Capacity planning should assume a cache outage."
+    },
+    {
+      "front": "How can request coalescing help caches?",
+      "back": "Concurrent identical misses share one backend request.",
+      "details": "A single in-flight load per key allows simultaneous callers to await one backend query. Within one process, a shared promise can suffice; across nodes, a lock or lease can coordinate loads but requires expiry and failure handling. It reduces duplicate work, not the need for a reliable source store."
+    },
+    {
+      "front": "What is TTL?",
+      "back": "Time-to-live: how long cached data remains valid before expiring.",
+      "details": "TTL is the lifetime of a cached value before it expires. A short TTL reduces stale time but increases misses and backend traffic; a long TTL does the opposite. TTL alone does not guarantee immediate correctness after a change."
+    },
+    {
+      "front": "What is cache invalidation?",
+      "back": "Removing or updating stale cached values after source data changes.",
+      "details": "Invalidation removes or replaces cached data when authoritative state changes. The hard parts are identifying every affected key and handling races between an old read and a new write. For critical state, use versioning, explicit invalidations, or authoritative reads."
+    },
+    {
+      "front": "What should happen if the cache fails?",
+      "back": "The system should usually fall back to the source of truth, perhaps at reduced capacity.",
+      "details": "If the cache is an acceleration layer, requests can read the database while rate limiting or shedding traffic to protect it. Some noncritical features may degrade temporarily. If the cache holds unique state, it is no longer disposable and needs persistence and recovery guarantees."
+    },
+    {
+      "front": "Why should the client not determine product price?",
+      "back": "Clients are untrusted; authoritative pricing must come from the server.",
+      "details": "A user can alter client requests, so a submitted price cannot be trusted as the charge amount. The server resolves a product and price from its catalog, applies validated discounts and taxes, and records the quoted purchase. Recheck business rules before committing payment."
+    },
+    {
+      "front": "What is an entitlement?",
+      "back": "A durable record that a user is allowed to access a purchased feature or item.",
+      "details": "An entitlement records a user's right to a feature or item independently of the payment attempt. It may contain scope, validity dates, source, and revocation state. Authorization should evaluate this authoritative grant rather than merely assume a payment callback implies access."
+    },
+    {
+      "front": "Why separate payment from entitlement state?",
+      "back": "Payment and access provisioning have different lifecycles and failure modes.",
+      "details": "Payment providers and internal feature provisioning fail and retry independently. Maintain separate payment and entitlement states linked by stable identifiers, then reconcile discrepancies. This prevents a successful charge from disappearing when downstream access creation fails."
+    },
+    {
+      "front": "What happens if payment succeeds but entitlement fails?",
+      "back": "Persist payment success and retry entitlement provisioning asynchronously.",
+      "details": "Record the payment success durably and enqueue or outbox entitlement creation for retry. Show a pending status if access is not yet available and alert or reconcile stuck cases. Do not charge again to fix a failed grant."
+    },
+    {
+      "front": "Why model subscriptions as a state machine?",
+      "back": "States like active, past due, canceled, and refunded have different behavior.",
+      "details": "Subscriptions transition among states such as trialing, active, past due, canceled, expired, and refunded. Events may arrive late or out of order, and policy defines access in each state. A state machine makes valid transitions and side effects explicit."
+    },
+    {
+      "front": "Why is a boolean is_subscribed insufficient?",
+      "back": "It cannot represent billing lifecycle, grace periods, refunds, or pending cancellation.",
+      "details": "A boolean loses renewal dates, trial periods, grace periods, cancellation at period end, refunds, and provider reconciliation status. Store an explicit state and effective timestamps. Compute authorization from current policy rather than one flag."
+    },
+    {
+      "front": "What is webhook idempotency?",
+      "back": "Processing repeated provider callbacks without duplicating effects.",
+      "details": "Providers retry webhook deliveries when acknowledgements fail or time out. Store provider event IDs and apply state changes idempotently, ideally with a uniqueness constraint. Acknowledging before the durable state change risks silently losing work."
+    },
+    {
+      "front": "Why can payment webhooks arrive out of order?",
+      "back": "Networks retry independently, so later events may arrive before earlier ones.",
+      "details": "Providers deliver over networks and retry events independently, so a later status change may arrive before an earlier one. Delivery order is not necessarily business order. Use provider sequence/version when available, validate transitions, and query authoritative provider state when uncertain."
+    },
+    {
+      "front": "How handle out-of-order billing events?",
+      "back": "Use event versions/timestamps and validate state transitions.",
+      "details": "Compare an event's provider version or effective time to the stored state and reject stale transitions. A timestamp alone may not settle all races, so check provider semantics and reconcile by fetching current subscription state when necessary. Preserve event IDs for deduplication."
+    },
+    {
+      "front": "What is fan-out-on-write?",
+      "back": "Push an update to recipients when it is created.",
+      "details": "A new message or update is pushed to recipient-specific inboxes, sockets, or materialized views at creation time. This improves read latency but makes one write expensive for huge audiences. Different fan-out targets have different costs and reliability needs."
+    },
+    {
+      "front": "What is fan-out-on-read?",
+      "back": "Store centrally and compute or fetch recipient state when users read.",
+      "details": "Store a shared source record and determine a recipient's relevant updates when they read or connect. This keeps writes cheap for massive audiences but moves work to reads and may require indexes or cached cursors. It can be mixed with write-time delivery for active users."
+    },
+    {
+      "front": "When is fan-out-on-write attractive?",
+      "back": "Small recipient sets where low-latency delivery matters.",
+      "details": "For a direct message or small group, recipient count is bounded and immediate push yields a responsive experience. The delivery path must still handle offline recipients and retries. Durable history and unread state may be separate from socket transport."
+    },
+    {
+      "front": "Why can fan-out-on-write fail for huge channels?",
+      "back": "One message may require millions of downstream writes.",
+      "details": "A single message can trigger millions of per-user writes, saturating storage and broker capacity. Most recipients may be offline or uninterested. Keep one canonical message and use selective push, lazy unread computation, or batched gateway routing."
+    },
+    {
+      "front": "How should giant channel fan-out scale?",
+      "back": "Route by channel to relevant gateways, then fan out near connected clients.",
+      "details": "Publish the channel event once to relevant gateway nodes, which fan it to local subscribed sessions. Avoid a central loop performing one broker write per member. Subscription tracking, hot-channel backpressure, and reconnect recovery must be designed."
+    },
+    {
+      "front": "Why personalize delivery at the gateway edge?",
+      "back": "Gateways already know local sessions and can avoid central per-user work.",
+      "details": "A gateway knows which local sockets are watching a channel, muted, or currently active and can choose a suitable payload without centralizing millions of individual decisions. It still needs authoritative permission and notification settings. Offline push notifications typically follow a separate policy path."
+    },
+    {
+      "front": "What might an inactive online user receive?",
+      "back": "A lightweight unread/activity event instead of the full message payload.",
+      "details": "A connected user outside the active channel may get a small channel activity or unread event if policy allows. Its size helps bandwidth, but the bigger savings come from selective routing and avoiding needless per-user writes. The durable unread marker can be updated separately."
+    },
+    {
+      "front": "What should an active channel viewer receive?",
+      "back": "The full realtime message payload for immediate rendering.",
+      "details": "A viewer in the channel can receive the message contents over the socket for immediate rendering, after authorization. If delivery is missed or the socket reconnects, the client fetches authoritative history and deduplicates by message ID. Presence alone is not proof the user viewed it."
+    },
+    {
+      "front": "What is a WebSocket useful for?",
+      "back": "Persistent bidirectional low-latency communication with connected clients.",
+      "details": "WebSockets keep a bidirectional connection open so server and client can exchange messages with low per-event overhead. Gateways manage authentication, subscriptions, heartbeats, backpressure, and reconnects. A socket connection is transient and not an authoritative database."
+    },
+    {
+      "front": "Why still keep a message database with WebSockets?",
+      "back": "Realtime delivery is not durable history or reconnect recovery.",
+      "details": "A WebSocket can drop messages during outages, tab suspensions, or reconnects. The database stores authoritative history and supports pagination, search indexing, and recovery reads. Clients reconcile live events against stored state using stable IDs."
+    },
+    {
+      "front": "How should clients handle realtime/history overlap?",
+      "back": "Deduplicate or upsert using stable message IDs.",
+      "details": "A client may fetch a message from history just as the same message arrives over the socket. Upsert by stable message ID and order by a defined cursor to avoid duplicates. Reconcile edits and deletes by version or event order as needed."
+    },
+    {
+      "front": "What is a message sequence/cursor used for?",
+      "back": "Detecting missed realtime events and supporting replay or resync.",
+      "details": "A scoped sequence or cursor identifies how far a client has observed a stream, allowing replay or a resync query after reconnect. Define the scope, such as a channel or gateway stream, and retention for replay. If events are unavailable, fall back to an authoritative snapshot or history fetch."
+    },
+    {
+      "front": "Why shouldn't message-ID gaps detect lost messages?",
+      "back": "IDs may be global, sharded, sparse, or deleted; gaps are ambiguous.",
+      "details": "IDs may be allocated globally, in blocks, or by independent shards, and deletions create holes. Therefore a numeric gap is not reliable evidence of a lost event. Use a purpose-built contiguous sequence within a defined stream or explicit cursor-based sync."
+    },
+    {
+      "front": "How should deleted messages be propagated?",
+      "back": "As explicit MESSAGE_DELETE events plus authoritative state updates.",
+      "details": "Persist the deletion or tombstone in authoritative state, publish a delete event, and have clients remove or mark the message. Outbox publication prevents a committed deletion from lacking a downstream event. Replay and offline history must respect the deletion."
+    },
+    {
+      "front": "What is a tombstone?",
+      "back": "A marker that a record existed but is now logically deleted.",
+      "details": "A tombstone records that a key or record was deleted, possibly with a version or timestamp. It helps replicas and caches avoid resurrecting older values. Its retention must cover replication lag and recovery windows."
+    },
+    {
+      "front": "Why can tombstones be useful?",
+      "back": "They help stale replicas or clients learn that prior data was deleted.",
+      "details": "A replica may miss a deletion and later send an old value during reconciliation. A versioned tombstone shows that the deletion wins over the stale copy. Garbage collecting it too soon can allow resurrection."
+    },
+    {
+      "front": "What is presence?",
+      "back": "Ephemeral information about whether and how a user is currently connected.",
+      "details": "Presence describes current connectivity or activity, such as online, idle, or a device's active sessions. It is approximate because network partitions and missed heartbeats delay updates. Do not equate presence with message receipt or read acknowledgement."
+    },
+    {
+      "front": "Why is presence usually not strongly persisted?",
+      "back": "It changes rapidly and can tolerate temporary inconsistency.",
+      "details": "Presence changes frequently and usually tolerates brief stale values, so a TTL-backed in-memory store or gateway-owned state is efficient. Durable writes for every heartbeat would be expensive. Reconstruct presence from live sessions after a node failure."
+    },
+    {
+      "front": "What is rate limiting?",
+      "back": "Restricting request frequency to protect capacity and prevent abuse.",
+      "details": "Rate limiting caps activity over time to protect capacity and reduce spam or abuse. Define the identity, endpoint, cost per action, burst allowance, and enforcement location. A legitimate surge and a coordinated attack may need different policy responses."
+    },
+    {
+      "front": "What is a token bucket limiter?",
+      "back": "Requests consume refillable tokens, allowing controlled bursts.",
+      "details": "A bucket holds up to a configured number of tokens and refills at a fixed rate. Each request spends tokens, allowing short bursts while constraining sustained throughput. Distributed implementation needs atomic updates and a clear clock or refill calculation."
+    },
+    {
+      "front": "Why rate-limit on more than user_id?",
+      "back": "Attackers may create accounts; IP, device, guild, or token may also matter.",
+      "details": "An attacker can create multiple accounts or rotate network endpoints to evade a single per-user limit. Combine user, IP, device, token, guild, and destination limits where appropriate, considering shared IPs and privacy. Different keys trade off evasion resistance against false positives."
+    },
+    {
+      "front": "What is load shedding?",
+      "back": "Rejecting lower-priority work to preserve critical system functionality.",
+      "details": "Under overload, reject or defer low-priority work before shared resources collapse. Preserve critical writes and transparent error behavior where possible. Policies should use measured saturation signals, not only static request rates."
+    },
+    {
+      "front": "What is graceful degradation?",
+      "back": "Keeping core functionality available while disabling nonessential features.",
+      "details": "Keep essential paths operating while optional features such as previews, analytics, or typing indicators are disabled. Define which dependencies can fail open or closed based on correctness and safety. Communicate partial service clearly and restore deferred work later."
+    },
+    {
+      "front": "What is a circuit breaker?",
+      "back": "Temporarily stop calls to a failing dependency to prevent cascading failure.",
+      "details": "A circuit breaker stops calling a dependency after repeated failures, then probes recovery after a delay. This avoids piling up timeouts and consuming threads or connection pools. Provide a suitable fallback or error; the breaker does not repair the dependency."
+    },
+    {
+      "front": "What is a bulkhead pattern?",
+      "back": "Isolate resources so failure in one workload does not sink unrelated workloads.",
+      "details": "Separate pools, queues, or concurrency budgets for workloads so a failure in one does not exhaust resources needed by others. For example, isolate expensive media processing from message API requests. Size and monitor each boundary to avoid merely moving contention."
+    },
+    {
+      "front": "What is synchronous safety enforcement?",
+      "back": "Evaluate abuse rules before allowing the user action to complete.",
+      "details": "A synchronous check decides before completing the action, useful for high-confidence, high-impact abuse that must be stopped immediately. It introduces latency and a dependency in the critical path. Specify timeout behavior and an appropriate fail-open or fail-closed policy."
+    },
+    {
+      "front": "Tradeoff of synchronous abuse checks?",
+      "back": "Faster prevention but added latency and dependency on safety service availability.",
+      "details": "Inline safety checks can prevent immediate harm but slow user actions and create availability coupling to detection infrastructure. Use fast deterministic checks synchronously and richer analysis asynchronously when possible. Make enforcement reversible and measure false positives."
+    }
+  ]
+}

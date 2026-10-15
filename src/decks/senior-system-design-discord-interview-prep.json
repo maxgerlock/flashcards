@@ -1,0 +1,56 @@
+{
+  "name": "Senior System Design — Discord Interview Prep",
+  "description": "Core concepts for senior system design and Discord interview preparation.",
+  "cards": [
+    {
+      "front": "Strong vs. eventual consistency?",
+      "back": "Strong: reads reflect latest write. Eventual: replicas may temporarily lag.",
+      "details": "Strong consistency means a read after a completed write observes that write under the system's stated guarantees. Eventual consistency allows replicas or projections to lag temporarily, provided updates propagate and converge. Choose per operation: a purchase entitlement may need immediate correctness, while an analytics dashboard can often lag."
+    },
+    {
+      "front": "Why must payment APIs be idempotent?",
+      "back": "Retries must not create duplicate charges, purchases, or entitlements.",
+      "details": "A payment request may time out after the provider has already charged the customer. Retrying without a stable idempotency key could create another charge. Persist the key and outcome, and make downstream fulfillment independently idempotent; a key's scope and retention period must be defined."
+    },
+    {
+      "front": "What problem does the transactional outbox solve?",
+      "back": "It prevents a committed DB write from being lost because event publishing failed.",
+      "details": "Writing a business row and publishing directly to a broker are two operations, so a crash between them can leave durable data with no event. Store an outbox row in the same database transaction as the business change; a publisher later delivers it. Publication can be repeated, so consumers still deduplicate."
+    },
+    {
+      "front": "Why use at-least-once delivery with idempotent consumers?",
+      "back": "Reliable delivery is easier; duplicate events become harmless when safely reprocessed.",
+      "details": "Networks and workers fail after doing work but before acknowledging it, making retries necessary for reliable delivery. At-least-once delivery deliberately permits duplicates; consumers use event IDs, unique constraints, or conditional updates to avoid duplicate effects. This yields practical reliability without claiming end-to-end exactly-once execution."
+    },
+    {
+      "front": "What should determine a database partition key?",
+      "back": "Primary access patterns, even load distribution, and avoiding cross-partition queries.",
+      "details": "Start with the dominant queries and required locality: which rows must be fetched together, in what order, and at what rate? A good key distributes traffic and data while keeping common requests within one partition. High-cardinality keys alone are insufficient if a few values receive most writes."
+    },
+    {
+      "front": "What is a hot partition?",
+      "back": "One partition gets disproportionate traffic, becoming a throughput bottleneck.",
+      "details": "A hot partition receives much more traffic or stores substantially more data than peers, so adding nodes may not fix the bottleneck. A celebrity channel keyed only by channel ID is a common example. Mitigations include finer partitioning, time buckets, caching, or splitting the workload while preserving query semantics."
+    },
+    {
+      "front": "When should an operation be asynchronous?",
+      "back": "When immediate completion isn't required and decoupling improves latency or resilience.",
+      "details": "Put nonessential work behind a queue or event stream when the user request can succeed without waiting for it, such as search indexing or analytics. The producer must still persist enough state to recover failed work. Define freshness expectations, retry policy, deduplication, and what the user sees while processing is pending."
+    },
+    {
+      "front": "What is backpressure?",
+      "back": "Slowing or limiting producers when downstream consumers cannot keep up.",
+      "details": "Backpressure prevents a producer from overwhelming bounded downstream capacity. It can slow intake, reject requests, buffer only within limits, or shed low-priority work. Watch queue depth and age, consumer lag, and timeouts; an unbounded queue merely converts overload into delayed failure."
+    },
+    {
+      "front": "What questions should accompany any cache design?",
+      "back": "Source of truth, invalidation, staleness, TTL, failure behavior, and stampedes.",
+      "details": "Identify the authoritative store, allowed staleness, key design, expiry or invalidation strategy, and behavior on misses and failures. Consider hot keys and stampedes, especially when many instances miss together. For correctness-sensitive data such as entitlements, define how stale cache entries are prevented from granting or denying access incorrectly."
+    },
+    {
+      "front": "What makes a strong Senior-level system design answer?",
+      "back": "Clear requirements, invariants, simple design, tradeoffs, failures, and operability.",
+      "details": "Clarify requirements and scale, name correctness invariants, then present a simple working path before adding components. Explain why each datastore, queue, or cache exists and what fails when it is unavailable. Discuss hot spots, retries, consistency, operations, and the tradeoffs of alternatives rather than listing technology names."
+    }
+  ]
+}

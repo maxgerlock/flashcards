@@ -1,0 +1,296 @@
+{
+  "name": "Discord Troubleshooting — Senior SWE",
+  "description": "Production incident diagnosis, observability, databases, distributed systems, Kubernetes, Linux diagnostics, and Discord-like messaging failure scenarios. Each card has a concise answer and a deeper explanation.",
+  "cards": [
+    {
+      "front": "What are the first three questions when paged?",
+      "back": "Who is affected, when did it start, and what is the user impact?",
+      "details": "Start by establishing scope, onset, and customer impact. Ask whether the issue is global or limited to a region, endpoint, or customer segment. Establish severity and incident coordination before diving into a suspected cause."
+    },
+    {
+      "front": "What are the four golden signals?",
+      "back": "Latency, traffic, errors, and saturation.",
+      "details": "Latency measures duration, traffic measures demand, errors measure failed work, and saturation measures proximity to resource limits. Check all four together: a latency rise with flat traffic suggests a different problem from a traffic spike."
+    },
+    {
+      "front": "What is the difference between mitigation and root-cause remediation?",
+      "back": "Mitigation restores service now; remediation prevents recurrence.",
+      "details": "Mitigation reduces immediate harm, such as rolling back or shedding load. Root-cause remediation addresses why the incident happened, such as fixing an unsafe retry policy. Stabilize first, then investigate and prevent recurrence."
+    },
+    {
+      "front": "Why compare an incident graph with deployments?",
+      "back": "A temporal correlation may reveal a regression; it does not prove causation.",
+      "details": "Overlay rollout timestamps against the onset of failures, and compare affected and unaffected versions. A deploy may coincide with a separate dependency problem; confirm with version-specific metrics or a safe rollback when possible."
+    },
+    {
+      "front": "What makes a good next diagnostic step?",
+      "back": "It distinguishes competing hypotheses with minimal operational risk.",
+      "details": "Choose evidence that can falsify or distinguish hypotheses. For example, database connection wait times differentiate pool exhaustion from slow SQL execution. Prefer read-only checks before risky production changes."
+    },
+    {
+      "front": "When should you roll back a deployment?",
+      "back": "When it plausibly caused material impact and rollback is safe and faster than repair.",
+      "details": "Rollback is attractive when symptoms began with a rollout, the previous version is known good, and reverting is operationally safe. Verify schema and data compatibility first; irreversible migrations can make a simple rollback dangerous."
+    },
+    {
+      "front": "How do you verify recovery?",
+      "back": "Check user-visible errors/latency, saturation, and sustained health after mitigation.",
+      "details": "Check the original alert, success rates, tail latency, and actual user flows. Confirm queue backlog and resource utilization recover, not just that errors briefly fall. Observe long enough to catch rebounds and verify affected segments."
+    },
+    {
+      "front": "What is blast radius?",
+      "back": "The users, regions, services, or operations affected by a failure.",
+      "details": "Blast radius describes the failure's scope, such as one tenant, availability zone, region, API endpoint, or all users. Narrowing it helps prioritize response and points toward shared versus local dependencies."
+    },
+    {
+      "front": "What does p99 latency mean?",
+      "back": "99% of observed operations finished at or below that duration.",
+      "details": "The 99th percentile is the duration at or below which about 99% of observed operations complete. It highlights tail latency, but hides which requests are slow; break it down by endpoint, region, and instance."
+    },
+    {
+      "front": "What does a Prometheus counter represent?",
+      "back": "A cumulative value that increments and may reset on restart.",
+      "details": "Prometheus counters usually increase for events like HTTP requests and reset when a process restarts. Query a rate or increase over time rather than subtracting arbitrary snapshots without handling resets."
+    },
+    {
+      "front": "When should you use a gauge?",
+      "back": "For values that may rise or fall, like active connections or queue depth.",
+      "details": "A gauge reports a current value that can increase or decrease, such as live sessions, memory consumption, or outstanding jobs. Unlike counters, gauges are not assumed to be monotonically increasing."
+    },
+    {
+      "front": "Why use rate(requests_total[5m])?",
+      "back": "To estimate per-second throughput from a counter over five minutes.",
+      "details": "PromQL rate() estimates the average per-second change of a counter over a time window while accounting for resets. In actual PromQL, a common expression is rate(http_requests_total[5m]); sum by (service) can aggregate replicas."
+    },
+    {
+      "front": "What does a histogram help measure?",
+      "back": "A distribution of observations, such as request latency.",
+      "details": "A histogram groups observations into buckets, usually alongside count and sum metrics. Prometheus can estimate fleet-wide quantiles using histogram_quantile() on aggregated bucket rates, with resolution bounded by buckets."
+    },
+    {
+      "front": "What might rising p99 with stable p50 indicate?",
+      "back": "Tail-specific trouble: a subset of slow requests, instances, or dependencies.",
+      "details": "The median staying flat while p99 worsens means most requests remain fast but a minority slow down. Compare endpoints, shards, regions, and dependency traces to identify the affected subset."
+    },
+    {
+      "front": "Why is the absolute count of errors misleading?",
+      "back": "An increased request volume can raise errors even if error rate is stable.",
+      "details": "An error count is strongly influenced by total request volume. Calculate a ratio such as 5xx requests divided by all requests over the same interval, and examine both the rate and absolute volume for impact."
+    },
+    {
+      "front": "What is metric cardinality?",
+      "back": "The number of unique time series created by combinations of labels.",
+      "details": "Cardinality is the count of distinct time series formed by metric names and label combinations. Labels containing user IDs or request IDs can cause explosive memory, storage, and query costs."
+    },
+    {
+      "front": "Which command shows CPU and active processes?",
+      "back": "top or htop.",
+      "details": "top shows process CPU use, memory and load; htop offers an interactive variant if installed. Look for hot processes and sustained resource use, then correlate with application throughput and latency."
+    },
+    {
+      "front": "Which command shows available memory?",
+      "back": "free -h.",
+      "details": "free -h summarizes total, used, available memory, and swap. On Linux, 'available' is often more useful than 'free' because filesystem cache can be reclaimed; check swapping and OOM events too."
+    },
+    {
+      "front": "Which command checks disk free space?",
+      "back": "df -h.",
+      "details": "df -h displays filesystem capacity and remaining space. If bytes look fine but writes still fail, check inode exhaustion with df -i and identify which mounted filesystem holds logs or database files."
+    },
+    {
+      "front": "Which command inspects disk I/O utilization?",
+      "back": "iostat -xz 1 (if installed).",
+      "details": "iostat -xz 1 reports extended per-device I/O statistics repeatedly. Examine device utilization, throughput, queueing and await latency; high await with workload stalls suggests storage contention, but interpretations depend on device type."
+    },
+    {
+      "front": "Which command displays listening TCP sockets?",
+      "back": "ss -ltnp.",
+      "details": "ss -ltnp lists listening TCP sockets and, if permissions allow, owning processes. Use it to check whether the service bound the expected port and address; connection or firewall issues may remain even if it is listening."
+    },
+    {
+      "front": "Which command inspects kernel messages?",
+      "back": "dmesg (permissions may be required).",
+      "details": "dmesg exposes kernel log messages, including possible OOM kills, storage faults and driver errors. Permissions or restricted kernel logging may block access; journalctl -k is another option on systemd hosts."
+    },
+    {
+      "front": "What does high load average with low CPU usage suggest?",
+      "back": "Possibly tasks blocked on I/O; inspect state and disk metrics.",
+      "details": "Linux load average includes runnable tasks and tasks stuck in uninterruptible sleep, often I/O waits. Low CPU utilization with high load can indicate storage blocking; confirm with process states, vmstat, and iostat."
+    },
+    {
+      "front": "Why can a full disk make an app unavailable?",
+      "back": "Writes, database WAL, logging, and temporary-file operations may fail.",
+      "details": "When a filesystem fills, databases may fail WAL or data writes and services may fail logs, uploads, or temporary files. Check capacity, inodes, and write errors; free space safely instead of deleting live database files."
+    },
+    {
+      "front": "How do TCP connection timeouts differ from connection refused?",
+      "back": "Timeout suggests no timely response; refused usually means no listener or active rejection.",
+      "details": "Connection refused usually means an explicit TCP reset, for example from a closed port or rejecting firewall. A timeout generally means packets or responses aren't arriving promptly; inspect DNS, routing, firewall and destination health."
+    },
+    {
+      "front": "What is a database connection pool?",
+      "back": "A bounded set of reusable DB connections shared by application requests.",
+      "details": "A pool retains reusable connections to avoid connection setup on every request and bounds concurrent use. Each app replica commonly has its own pool, so replica count times pool maximum determines potential upstream connections."
+    },
+    {
+      "front": "What indicates database pool exhaustion?",
+      "back": "Connections at limit, growing wait time, and request latency or timeouts.",
+      "details": "Check active versus maximum pool connections, pending borrowers, acquisition duration and timeout errors. High wait time may occur even when database CPU is low, for example when connections are held by slow or long-lived transactions."
+    },
+    {
+      "front": "How do you diagnose a slow database query?",
+      "back": "Inspect query latency, query plan, index usage, locks, and scanned rows.",
+      "details": "Identify the affected SQL shape using query telemetry, then inspect EXPLAIN (ANALYZE, BUFFERS) cautiously and check lock waits. Compare plans, row estimates, index usage, and performance before and after the regression."
+    },
+    {
+      "front": "What is an EXPLAIN plan for?",
+      "back": "To inspect a database query execution strategy and access paths.",
+      "details": "EXPLAIN describes the planner's selected operators, join order, scans, and estimated costs. EXPLAIN ANALYZE executes the query and supplies actual timings and rows, so use caution with expensive or mutating statements."
+    },
+    {
+      "front": "What can cause lock contention?",
+      "back": "Long transactions or concurrent operations competing for the same locks.",
+      "details": "Competing transactions may block each other on row, table, or advisory locks. Long transactions enlarge wait times and deadlock risk; inspect pg_stat_activity, wait events, blocked PIDs, and transaction age."
+    },
+    {
+      "front": "What is replication lag?",
+      "back": "Delay between writes on the primary and visibility on a replica.",
+      "details": "Replicas apply changes after the primary; the delay can cause stale reads. Measure time or byte lag, confirm whether affected requests read replicas, and consider routing consistency-sensitive operations to the primary."
+    },
+    {
+      "front": "Why might more app replicas worsen a DB incident?",
+      "back": "They can increase concurrent DB connections and load.",
+      "details": "Adding app pods often adds their connection pools and DB concurrency without adding database capacity. This can hit max_connections, worsen CPU/lock/I/O contention, and produce longer pool waits; measure before increasing replicas again."
+    },
+    {
+      "front": "What can cause a sudden spike in DB CPU?",
+      "back": "Expensive queries, missing indexes, increased load, or plan changes.",
+      "details": "A newly expensive query, changed optimizer plan, missing index, traffic surge, or background maintenance can raise CPU. Compare top query fingerprints, execution counts, per-query work and deployment timing."
+    },
+    {
+      "front": "What is a cascading failure?",
+      "back": "A failing component overloads or impairs other components.",
+      "details": "When one dependency slows or fails, callers hold resources longer, retry, and exhaust threads or pools; other services then degrade. Timeouts, bulkheads, circuit breakers, and load shedding can contain blast radius."
+    },
+    {
+      "front": "Why can retries worsen an outage?",
+      "back": "They multiply load on an already failing dependency.",
+      "details": "Retries turn each logical operation into potentially many attempts, amplifying traffic just when a service is overloaded. Use bounded retries, deadlines, jitter, idempotency, and retry budgets; avoid retrying permanent errors."
+    },
+    {
+      "front": "What is exponential backoff with jitter?",
+      "back": "Increasing retry delays randomized to avoid synchronized retries.",
+      "details": "Backoff increases delay between attempts; jitter randomizes scheduling so clients do not retry in lockstep. Combine with a retry cap and end-to-end deadline, and honor server-provided retry guidance where appropriate."
+    },
+    {
+      "front": "What is a circuit breaker?",
+      "back": "A mechanism that temporarily stops calls to an unhealthy dependency.",
+      "details": "A circuit breaker stops making calls temporarily after repeated failures, then probes for recovery. It reduces wasted resources and overload but needs sensible thresholds and fallback behavior; it is not a substitute for timeouts."
+    },
+    {
+      "front": "What is backpressure?",
+      "back": "A mechanism that limits, slows, or rejects work when downstream cannot keep up.",
+      "details": "Backpressure prevents unbounded work accumulation by slowing, blocking, queueing within bounds, or rejecting upstream work. Examples include await writer.drain(), bounded queues, HTTP 429/503, and limiting concurrent requests."
+    },
+    {
+      "front": "What does growing queue depth usually signal?",
+      "back": "Producers outpace consumers; inspect ingress, throughput, and processing errors.",
+      "details": "A growing queue indicates enqueue rate exceeds successful processing rate over the interval, or messages cannot be acknowledged. Measure producer rate, consumer throughput, errors, retries, and oldest-message age to locate the bottleneck."
+    },
+    {
+      "front": "What is consumer lag?",
+      "back": "The backlog between newest produced records and consumer progress.",
+      "details": "Kafka consumer lag is roughly the difference between a partition's latest offset and the group's consumed/committed progress. Examine per-partition lag and rate of change; a single hot partition may limit recovery."
+    },
+    {
+      "front": "Why is an idempotent retry useful?",
+      "back": "Repeated execution does not unintentionally duplicate the operation.",
+      "details": "Idempotency ensures duplicate requests or message deliveries do not repeat harmful side effects. Use stable operation IDs, uniqueness constraints, deduplication records, or conditional updates; retries alone do not ensure exactly-once effects."
+    },
+    {
+      "front": "What does a timeout protect against?",
+      "back": "Indefinite waiting and resource exhaustion due to slow dependencies.",
+      "details": "Timeouts place an upper bound on waiting for a dependency and free up resources sooner. Configure a coherent end-to-end deadline across network hops; overly short timeouts can create false failures and retry storms."
+    },
+    {
+      "front": "What problem does distributed tracing solve?",
+      "back": "Locates slow/failing operations across a multi-service request path.",
+      "details": "Distributed traces stitch spans from multiple services into one request timeline. Identify where wall-clock time accumulates or errors originate; sampling and missing context propagation can hide some requests."
+    },
+    {
+      "front": "Why propagate a request or trace ID?",
+      "back": "To correlate logs and events across components.",
+      "details": "Propagating a correlation or trace ID lets you tie events across gateway, API, queue workers, and persistence. Use structured fields consistently and avoid leaking sensitive identifiers or treating IDs as proof of causality."
+    },
+    {
+      "front": "Metrics vs. logs vs. traces?",
+      "back": "Metrics quantify trends; logs record events; traces show request paths.",
+      "details": "Metrics summarize rates and trends, logs provide detailed event context, and traces follow request execution across dependencies. During an incident, use metrics to locate the anomaly, traces to isolate latency, and logs to inspect failures."
+    },
+    {
+      "front": "What does an HTTP 503 typically indicate?",
+      "back": "Service unavailable, often overload or downstream unavailability; verify context.",
+      "details": "HTTP 503 indicates a service is temporarily unavailable, often during overload or maintenance. It can originate from a proxy, load balancer or application; locate its source before concluding the backend itself failed."
+    },
+    {
+      "front": "Which command lists Kubernetes pods?",
+      "back": "kubectl get pods -n <namespace>.",
+      "details": "kubectl get pods -n production lists pod status and restarts for a namespace; add -o wide for node placement. Check whether failures correlate with a rollout, node, namespace, or region."
+    },
+    {
+      "front": "How do you inspect a failing pod?",
+      "back": "kubectl describe pod and kubectl logs; check events and restarts.",
+      "details": "Use kubectl describe pod for scheduling, probe and termination events and kubectl logs for application output. For restarting containers, kubectl logs POD --previous can reveal the immediately preceding crash's logs."
+    },
+    {
+      "front": "What does CrashLoopBackOff mean?",
+      "back": "A container repeatedly starts, exits, and is restarted with increasing delay.",
+      "details": "CrashLoopBackOff is Kubernetes delaying restarts after a container repeatedly exits. Inspect previous logs, termination reasons, probes, configuration and dependencies; the status is a symptom, not a root cause."
+    },
+    {
+      "front": "What is an OOMKilled container?",
+      "back": "A container terminated after exceeding available/allowed memory.",
+      "details": "OOMKilled means the container was terminated for memory pressure, commonly exceeding its cgroup memory limit. Compare working-set and peak memory, limits, memory leaks, and recent traffic or deploy changes."
+    },
+    {
+      "front": "Which command shows deployment rollout history?",
+      "back": "kubectl rollout history deployment/<name>.",
+      "details": "kubectl rollout history deployment/NAME displays revisions where supported. Combine with rollout status, image tags, change records and time-series annotations to test whether a rollout aligns with the incident."
+    },
+    {
+      "front": "Which command rolls back a deployment?",
+      "back": "kubectl rollout undo deployment/<name> (with appropriate authorization).",
+      "details": "kubectl rollout undo deployment/NAME requests a rollback to the prior revision. Check permissions, current rollout state, and data/schema compatibility; then verify pods become ready and user-visible metrics recover."
+    },
+    {
+      "front": "What is a canary deployment?",
+      "back": "A release sent to a small fraction of traffic before wider rollout.",
+      "details": "A canary sends a small, controlled fraction of production workload to a new version before expanding. Compare success rates and tail latency against the stable cohort; ensure representative traffic and clear stop criteria."
+    },
+    {
+      "front": "What is the difference between readiness and liveness?",
+      "back": "Readiness governs traffic routing; liveness signals when to restart.",
+      "details": "Readiness failures remove pods from normal service endpoints; liveness failures tell kubelet to restart containers. Bad liveness probes can amplify load or cause restart loops, while readiness can protect traffic during warm-up."
+    },
+    {
+      "front": "Gateway disconnects spike but API errors stay flat: where next?",
+      "back": "Inspect WebSocket gateways, connection churn, deploys, and network/LB metrics.",
+      "details": "If HTTP API health is normal but WebSocket disconnects spike, isolate the gateway path: connection churn, heartbeat behavior, gateway deploys, regional load balancing and network errors. Break down by gateway instance and region."
+    },
+    {
+      "front": "Messages are delayed but producers look healthy: where next?",
+      "back": "Check queue/consumer lag, consumer errors, and downstream write latency.",
+      "details": "Healthy producer ingress with delayed delivery points downstream: queue backlog, slow or failing consumers, hot partitions, persistence latency or fan-out bottlenecks. Check age of oldest message as well as lag and throughput."
+    },
+    {
+      "front": "One region has elevated latency: first comparison?",
+      "back": "Compare region-specific deployments, dependencies, resource usage, and routing.",
+      "details": "Compare affected versus healthy regions for versions, error rates, upstream routes, resource saturation and external dependencies. A regional-only symptom favors a localized component but shared services can still produce asymmetric effects."
+    },
+    {
+      "front": "A few users see stale data: plausible distributed cause?",
+      "back": "Replica lag, stale caches, or inconsistent reads; test per path.",
+      "details": "A subset of stale reads can stem from delayed replicas, caches with incorrect invalidation or differing consistency paths. Correlate affected users with read region, cache key, replica and read-after-write expectations."
+    }
+  ]
+}

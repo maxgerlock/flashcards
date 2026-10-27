@@ -1,0 +1,57 @@
+
+{
+  "name": "System Design — Technology Selection & Tradeoffs",
+  "description": "Flashcards comparing major system design technologies, their alternatives, use cases, and architectural tradeoffs.",
+  "cards": [
+    {
+      "front": "When choose Kafka over Azure Service Bus?",
+      "back": "Kafka: high-throughput, replayable event streams. Service Bus: reliable jobs, acknowledgments, retries, and DLQs.",
+      "details": "Kafka is designed around partitioned, durable append-only logs. Independent consumer groups can read and replay events within the retention window. It's well suited to large-scale event pipelines, analytics, and multiple downstream consumers. Azure Service Bus is better suited to task processing and workflows, with built-in message locks, retries, dead-letter queues, and scheduled delivery. Service Bus topics support fanout, but completed messages are not ordinarily replayable."
+    },
+    {
+      "front": "Why choose Azure Event Hubs instead of Kafka?",
+      "back": "Managed streaming in Azure with Kafka protocol support; native Kafka offers more ecosystem and broker control.",
+      "details": "Azure Event Hubs provides partitioned event streams, consumer groups, retention, and replay without requiring you to operate Kafka brokers. It also supports Kafka-compatible clients. It's attractive when your infrastructure already runs on Azure. Native Kafka or managed Kafka may be preferable when you need greater control over broker configuration, broader Kafka feature compatibility, or specific ecosystem integrations. Event Hubs does not provide complete Kafka feature parity."
+    },
+    {
+      "front": "When would you choose Apache Pulsar over Kafka?",
+      "back": "When multi-tenancy, geo-replication, or independent scaling of brokers and storage are priorities.",
+      "details": "Apache Pulsar separates message-serving brokers from its durable storage layer, traditionally implemented using Apache BookKeeper. This allows broker compute and storage capacity to scale independently. Pulsar also offers built-in multi-tenancy, multiple subscription models, and geo-replication features. Kafka offers a particularly mature ecosystem and well-established operational patterns. Pulsar's additional infrastructure components can introduce operational complexity."
+    },
+    {
+      "front": "When use NATS JetStream or RabbitMQ Streams over Kafka?",
+      "back": "For durable streaming with a lighter footprint or an existing NATS/RabbitMQ ecosystem.",
+      "details": "NATS JetStream adds persistence, replay, acknowledgments, and durable consumers to NATS messaging. It can be attractive for lightweight distributed systems and low-latency communication. RabbitMQ Streams provide retained append-only logs and replay, unlike conventional RabbitMQ work queues. Both can be reasonable alternatives when event volumes and ecosystem requirements don't justify Kafka. Kafka is especially compelling for large-scale partitioned streams, independent consumer groups, and extensive stream-processing integrations."
+    },
+    {
+      "front": "When choose ScyllaDB over PostgreSQL?",
+      "back": "For massive partition-key-based reads/writes and horizontal scale; sacrifice flexible joins and transactions.",
+      "details": "ScyllaDB is a distributed wide-column database designed for high-throughput, low-latency workloads with predictable access patterns. It distributes data using partition keys and scales horizontally across nodes. It works well for workloads such as chat-message history, where queries primarily retrieve records by channel and time range. PostgreSQL is usually preferable when relationships, joins, flexible queries, and multi-row ACID transactions matter. ScyllaDB requires query-driven data modeling, careful partition design, and different approaches to transactional consistency."
+    },
+    {
+      "front": "Why choose ScyllaDB instead of Cassandra?",
+      "back": "ScyllaDB's shard-per-core design targets efficiency and latency; compare compatibility and operational expertise.",
+      "details": "ScyllaDB and Apache Cassandra share a similar distributed wide-column data model and support Cassandra Query Language. ScyllaDB uses a C++ shard-per-core architecture designed to minimize contention and improve resource efficiency and latency predictability. Cassandra is JVM-based and has a mature ecosystem and substantial production adoption. ScyllaDB may offer performance and operational advantages for particular workloads, but the choice should consider compatibility, benchmarks, deployment tooling, and team expertise. Neither database is universally faster."
+    },
+    {
+      "front": "PostgreSQL vs. MySQL: what drives the decision?",
+      "back": "Both are strong OLTP choices. PostgreSQL excels in rich SQL/extensions; team expertise may favor MySQL.",
+      "details": "PostgreSQL and MySQL are mature relational databases supporting ACID transactions, indexes, replication, and substantial concurrency. PostgreSQL is particularly attractive for complex SQL, advanced data types, JSONB, and extensions such as PostGIS and pgvector. MySQL has a large production ecosystem and is widely used for web-scale transactional applications. Both can support very large systems. Existing infrastructure, operational familiarity, compatibility, and specific workload requirements often matter more than theoretical performance differences."
+    },
+    {
+      "front": "When consider CockroachDB instead of PostgreSQL?",
+      "back": "For distributed SQL transactions and multi-region resilience; accept coordination latency and complexity.",
+      "details": "CockroachDB is a distributed SQL database that provides transactional consistency while automatically distributing and replicating data across nodes. It is particularly attractive when horizontal scaling, geographic distribution, or resilience to node and zone failures are central requirements. PostgreSQL is often simpler and more efficient for applications that can operate with a conventional primary database architecture. CockroachDB introduces distributed consensus and coordination costs, and PostgreSQL compatibility is not complete."
+    },
+    {
+      "front": "When should Redis complement PostgreSQL?",
+      "back": "For low-latency caching, presence, counters, and ephemeral state; retain durable authoritative data in PostgreSQL.",
+      "details": "Redis provides fast in-memory data structures that are useful for caching frequently accessed database records, tracking online presence, maintaining rate-limit counters, and storing ephemeral session information. PostgreSQL remains appropriate for authoritative transactional records requiring strong consistency and durable relationships. Redis caching introduces invalidation and stale-data challenges, while hot keys and cache stampedes can create scaling problems. Redis supports persistence and replication, but its durability guarantees depend on configuration and architecture."
+    },
+    {
+      "front": "When use BigQuery or ClickHouse instead of PostgreSQL?",
+      "back": "For large OLAP scans and aggregations; ClickHouse also targets fast interactive analytics. PostgreSQL suits OLTP.",
+      "details": "BigQuery and ClickHouse are column-oriented analytical database systems optimized for scanning and aggregating large datasets. BigQuery is a serverless, managed data warehouse particularly useful for large-scale analytical SQL and batch-oriented business intelligence. ClickHouse emphasizes high-performance analytical queries and can be especially effective for low-latency dashboards, observability, and event analytics. PostgreSQL is generally a better fit for transactional workloads involving frequent individual row updates, relational constraints, and OLTP queries. Analytical workloads are often separated from production databases to avoid resource contention."
+    }
+  ]
+}
